@@ -30,3 +30,17 @@ application {
     // Define the main class for the application.
     mainClass = 'ppp.stats.PPPBot'
 }
+
+task runWithLocalToken(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ppp.stats.PPPBot'
+
+    def token = project.getProperty('ppp_discord_bot_token')
+    args token
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'ppp.stats.PPPBot'
+    }
+}

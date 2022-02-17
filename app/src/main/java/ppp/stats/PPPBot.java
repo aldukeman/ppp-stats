@@ -13,6 +13,7 @@ public class PPPBot {
 
     public static void main(String[] args) {
         final String token = args[0];
+        System.out.println(token);
         final PPPBot bot = new PPPBot(token);
     
         bot.client.login().flatMapMany(gateway -> gateway.on(MessageCreateEvent.class))
