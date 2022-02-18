@@ -6,12 +6,17 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 
+import ppp.stats.data.InMemoryDataManager;
+import ppp.stats.parser.MiniCrosswordTimeParser;
+
 public class PPPBot {
     private DiscordClient client;
     private GatewayDiscordClient gateway;
+    private InMemoryDataManager dataManager;
 
     public PPPBot(String token) {
         this.client = DiscordClient.create(token);
+        this.dataManager = new InMemoryDataManager();
     }
 
     public void login() {
@@ -31,6 +36,14 @@ public class PPPBot {
         if ("!ping".equals(msg.getContent())) {
             final MessageChannel channel = msg.getChannel().block();
             channel.createMessage("Pong!").block();
+        } else if(msg.getContent().contains("mini")) {
+            MiniCrosswordTimeParser parser = new MiniCrosswordTimeParser();
+            Integer time = parser.getTime(msg.getContent());
+            if(time != null) {
+                System.out.println("Found mini time: " + time.intValue());
+            } else {
+                System.out.println("Found \"mini\" but it wasn't a time report");
+            }
         }
     }
 
