@@ -1,5 +1,7 @@
 package ppp.stats;
 
+import java.util.HashMap;
+
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -11,6 +13,8 @@ import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.processor.CommandProcessor;
 import ppp.stats.processor.IProcessor;
 import ppp.stats.processor.MiniCrosswordTimeProcessor;
+import ppp.stats.processor.commands.ICommandHandler;
+import ppp.stats.processor.commands.TimesCommandHandler;
 
 public class PPPBot {
     final private DiscordClient client;
@@ -57,10 +61,13 @@ public class PPPBot {
             return;
         }
 
-        final String token = args[0];
         final IDataManager dataManager = new InMemoryDataManager();
+        final String token = args[0];
         final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager);
-        final CommandProcessor commandProcessor = new CommandProcessor(dataManager);
+
+        final HashMap<String, ICommandHandler> commands = new HashMap<>();
+        commands.put("times", new TimesCommandHandler(dataManager));
+        final CommandProcessor commandProcessor = new CommandProcessor(commands);
         final IProcessor[] processors = { timeProcessor, commandProcessor };
         final PPPBot bot = new PPPBot(token, processors);
 
