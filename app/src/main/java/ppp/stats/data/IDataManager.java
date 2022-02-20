@@ -1,11 +1,10 @@
 package ppp.stats.data;
 
-import java.math.BigInteger;
 import java.util.Set;
 
-interface IDataManager {
-    void setUserName(BigInteger id, String name);
-    void addUserTime(BigInteger id, int seconds);
-    Set<BigInteger> getUserIds();
-    UserTimesDictionary getTimesForUserId(BigInteger id);
+public interface IDataManager {
+    void setUserName(long id, String name);
+    void addUserTime(long id, int seconds);
+    Set<Long> getUserIds();
+    UserTimesDictionary getTimesForUserId(long id);
 }
