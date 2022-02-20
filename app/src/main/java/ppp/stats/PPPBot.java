@@ -4,19 +4,24 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
-
+import ppp.stats.data.IDataManager;
 import ppp.stats.data.InMemoryDataManager;
-import ppp.stats.parser.MiniCrosswordTimeParser;
+import ppp.stats.logging.ILogger;
+import ppp.stats.logging.SystemOutLogger;
+import ppp.stats.processor.CommandProcessor;
+import ppp.stats.processor.IProcessor;
+import ppp.stats.processor.MiniCrosswordTimeProcessor;
 
 public class PPPBot {
-    private DiscordClient client;
+    final private DiscordClient client;
     private GatewayDiscordClient gateway;
-    private InMemoryDataManager dataManager;
+    final private ILogger logger = new SystemOutLogger();
+    final private IProcessor[] processors;
+    private long currentMaxId = 0;
 
-    public PPPBot(String token) {
+    public PPPBot(String token, IProcessor[] processors) {
         this.client = DiscordClient.create(token);
-        this.dataManager = new InMemoryDataManager();
+        this.processors = processors;
     }
 
     public void login() {
@@ -24,27 +29,26 @@ public class PPPBot {
     }
 
     public void startListening() {
-        this.gateway.on(MessageCreateEvent.class).subscribe(event -> {
-            final Message message = event.getMessage();
-            this.processMessage(message);
-          });
+        this.gateway.getEventDispatcher().on(MessageCreateEvent.class)
+            .map(MessageCreateEvent::getMessage)
+            .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
+            .filter(message -> message.getId().asLong() > this.currentMaxId)
+            .subscribe(message -> {
+                this.currentMaxId = message.getId().asLong();
+                this.processMessage(message);
+            });
         this.gateway.onDisconnect().block();
     }
 
-    private void processMessage(Message msg) {
-        System.out.println("Received message: " + msg.getContent());
-        if ("!ping".equals(msg.getContent())) {
-            final MessageChannel channel = msg.getChannel().block();
-            channel.createMessage("Pong!").block();
-        } else if(msg.getContent().contains("mini")) {
-            MiniCrosswordTimeParser parser = new MiniCrosswordTimeParser();
-            Integer time = parser.getTime(msg.getContent());
-            if(time != null) {
-                System.out.println("Found mini time: " + time.intValue());
-            } else {
-                System.out.println("Found \"mini\" but it wasn't a time report");
+    private boolean processMessage(Message msg) {
+        this.logger.trace("Received message: " + msg.getContent());
+
+        for(IProcessor proc: this.processors) {
+            if(proc.process(msg)) {
+                return true;
             }
         }
+        return false;
     }
 
     public static void main(String[] args) {
@@ -54,7 +58,12 @@ public class PPPBot {
         }
 
         final String token = args[0];
-        final PPPBot bot = new PPPBot(token);
+        final IDataManager dataManager = new InMemoryDataManager();
+        final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager);
+        final CommandProcessor commandProcessor = new CommandProcessor(dataManager);
+        final IProcessor[] processors = { timeProcessor, commandProcessor };
+        final PPPBot bot = new PPPBot(token, processors);
+
         bot.login();
         bot.startListening();
     }
