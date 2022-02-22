@@ -2,7 +2,10 @@ package ppp.stats.data;
 
 import java.time.LocalDate;
 import java.util.Hashtable;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
+
+import ppp.stats.data.model.UserModel;
 
 public class InMemoryDataManager implements IDataManager {
     private Hashtable<Long, UserTimesDictionary> userTimes;
@@ -19,6 +22,11 @@ public class InMemoryDataManager implements IDataManager {
     }
 
     @Override
+    public List<UserModel> getUserModels() {
+        return this.userNames.entrySet().stream().map(e -> new UserModel(e.getKey(), e.getValue())).toList();
+    }
+
+    @Override
     public void addUserTime(long id, int seconds) {
         UserTimesDictionary dict = this.userTimes.get(Long.valueOf(id));
         LocalDate now = LocalDate.now();
@@ -32,12 +40,20 @@ public class InMemoryDataManager implements IDataManager {
     }
 
     @Override
-    public Set<Long> getUserIds() {
-        return this.userNames.keySet();
+    public UserTimesDictionary getTimesForUserId(long id) {
+        return this.userTimes.get(Long.valueOf(id));
     }
 
     @Override
-    public UserTimesDictionary getTimesForUserId(long id) {
-        return this.userTimes.get(Long.valueOf(id));
+    public Map<Long, Integer> getTimesForDate(LocalDate date) {
+        Hashtable<Long, Integer> results = new Hashtable<>();
+        var iter = this.userTimes.entrySet().iterator();
+        while(iter.hasNext()) {
+            var entry = iter.next();
+            Long id = entry.getKey();
+            Integer time = entry.getValue().get(date);
+            results.put(id, time);
+        }
+        return results;
     }
 }
