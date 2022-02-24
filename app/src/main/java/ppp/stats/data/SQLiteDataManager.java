@@ -2,6 +2,7 @@ package ppp.stats.data;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -17,34 +18,36 @@ import ppp.stats.logging.ILogger;
 public class SQLiteDataManager implements IDataManager {
     final private String filename;
     final private ILogger logger;
+    final private Connection connection;
 
-    public SQLiteDataManager(String filename, ILogger logger) {
+    public SQLiteDataManager(String filename, ILogger logger) throws SQLException {
         this.filename = filename;
         this.logger = logger;
+
+        String url = "jdbc:sqlite:" + this.filename;
+        this.connection = DriverManager.getConnection(url);
 
         this.setupDB();
     }
 
-    private Connection connection() {
-        // SQLite connection string
-        String url = "jdbc:sqlite:" + this.filename;
-        Connection conn = null;
+    private void setupDB() {
         try {
-            conn = DriverManager.getConnection(url);
+            ResultSet tablesSet = this.connection.createStatement().executeQuery(this.checkForTablesString());
+            int count = tablesSet.getInt(1);
+            if (count == 0) {
+                this.logger.debug("Recreating the DB");
+                this.connection.createStatement().executeUpdate(this.createUserTableAndIndicesString());
+                this.connection.createStatement().executeUpdate(this.createMiniTableAndIndicesString());
+            } else {
+                this.logger.debug("Tables already exist");
+            }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
         }
-        return conn;
     }
 
-    private void setupDB() {
-        Connection connection = this.connection();
-        try {
-            connection.createStatement().executeUpdate(this.createUserTableAndIndicesString());
-            connection.createStatement().executeUpdate(this.createMiniTableAndIndicesString());
-        } catch (SQLException e) {
-            this.logger.error(e.getMessage());
-        }
+    private String checkForTablesString() {
+        return "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='" + USER_TABLE_NAME + "';";
     }
 
     final static private String USER_TABLE_NAME = "User";
@@ -58,23 +61,38 @@ public class SQLiteDataManager implements IDataManager {
         return createTable;
     }
 
-    private String insertUserNameStatement(long id, String name) {
-        return "INSERT INTO " + USER_TABLE_NAME + "(" + USER_ID_NAME + ", " + USER_NAME_NAME + ") " +
-                "VALUES (" + id + ", \"" + name + "\");";
+    private PreparedStatement insertUserNameStatement(long id, String name) {
+        String sqlStr = "INSERT INTO " + USER_TABLE_NAME + "(" + USER_ID_NAME + ", " + USER_NAME_NAME + ") " +
+                "VALUES (" + id + ", ?);";
+        try {
+            PreparedStatement pStatement = this.connection.prepareStatement(sqlStr);
+            pStatement.setString(1, name.substring(0, Integer.min(200, name.length())));
+            return pStatement;
+        } catch (SQLException e) {
+            this.logger.error(e.getMessage());
+            return null;
+        }
     }
 
-    private String updateUserNameStatement(long id, String name) {
-        return "UPDATE " + USER_TABLE_NAME + " " +
-                "SET " + USER_NAME_NAME + "=\"" + name + "\" " +
+    private PreparedStatement updateUserNameStatement(long id, String name) {
+        String sqlStr = "UPDATE " + USER_TABLE_NAME + " " +
+                "SET " + USER_NAME_NAME + "=? " +
                 "WHERE " + USER_ID_NAME + "=" + id + ";";
+        try {
+            PreparedStatement pStatement = this.connection.prepareStatement(sqlStr);
+            pStatement.setString(1, name.substring(0, Integer.min(200, name.length())));
+            return pStatement;
+        } catch (SQLException e) {
+            this.logger.error(e.getMessage());
+            return null;
+        }
     }
 
     @Override
     public void setUserName(long id, String name) {
         try {
-            Connection connection = this.connection();
-            if (connection.createStatement().executeUpdate(this.updateUserNameStatement(id, name)) == 0) {
-                connection.createStatement().executeUpdate(this.insertUserNameStatement(id, name));
+            if (this.updateUserNameStatement(id, name).executeUpdate() == 0) {
+                this.insertUserNameStatement(id, name).execute();
             }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
@@ -84,7 +102,7 @@ public class SQLiteDataManager implements IDataManager {
     @Override
     public List<UserModel> getUserModels() {
         try {
-            ResultSet resultSet = this.connection().createStatement().executeQuery(this.selectAllUsersStatement());
+            ResultSet resultSet = this.connection.createStatement().executeQuery(this.selectAllUsersStatement());
 
             List<UserModel> results = new ArrayList<>(resultSet.getFetchSize());
             while (resultSet.next()) {
@@ -113,19 +131,19 @@ public class SQLiteDataManager implements IDataManager {
     private String createMiniTableAndIndicesString() {
         String createTable = "CREATE TABLE " + MINI_TABLE_NAME + "(" +
                 MINI_USER_ID_NAME + " UNSIGNED BIGINT, " +
-                MINI_DATE_NAME + " CHAR(10), " + // SQLite doesn't do DATE, so instead we store the string representation
+                MINI_DATE_NAME + " CHAR(10), " + // SQLite doesn't do DATE, so instead we store the string
+                                                 // representation
                 MINI_TIME_NAME + " UNSIGNED SMALLINT, " +
                 "FOREIGN KEY (" + MINI_USER_ID_NAME + ") REFERENCES " + USER_TABLE_NAME + "(" + USER_ID_NAME + ")," +
-                "PRIMARY KEY(" + MINI_USER_ID_NAME + ", " + MINI_TIME_NAME + "));";
+                "PRIMARY KEY(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + "));";
         return createTable;
     }
 
     @Override
     public void addUserTime(long id, int seconds) {
         try {
-            Connection connection = this.connection();
-            if (connection.createStatement().executeUpdate(this.insertMiniTimeStatement(id, seconds)) == 0) {
-                connection.createStatement().executeUpdate(this.updateMiniTimeStatement(id, seconds));
+            if (this.connection.createStatement().executeUpdate(this.updateMiniTimeStatement(id, seconds)) == 0) {
+                this.connection.createStatement().executeUpdate(this.insertMiniTimeStatement(id, seconds));
             }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
@@ -137,20 +155,23 @@ public class SQLiteDataManager implements IDataManager {
     }
 
     private String insertMiniTimeStatement(long id, int seconds) {
-        return "INSERT INTO " + MINI_TABLE_NAME + "(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + ", " + MINI_TIME_NAME + ") " +
+        return "INSERT INTO " + MINI_TABLE_NAME + "(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + ", "
+                + MINI_TIME_NAME + ") " +
                 "VALUES (" + id + ", \"" + SQLiteDataManager.MiniDate() + "\", " + seconds + ");";
     }
 
     private String updateMiniTimeStatement(long id, int seconds) {
         return "UPDATE " + MINI_TABLE_NAME + " " +
-                "SET " + MINI_TIME_NAME + " " + seconds + " " +
-                "WHERE " + MINI_USER_ID_NAME + "=" + id + " AND " + MINI_DATE_NAME + "=\"" + this.MiniDate() + "\";";
+                "SET " + MINI_TIME_NAME + "=" + seconds + " " +
+                "WHERE " + MINI_USER_ID_NAME + "=" + id + " AND " + MINI_DATE_NAME + "=\""
+                + SQLiteDataManager.MiniDate() + "\";";
     }
 
     @Override
     public UserTimesDictionary getTimesForUserId(long id) {
         try {
-            ResultSet resultSet = this.connection().createStatement().executeQuery(this.selectAllTimesForUserStatement(id));
+            ResultSet resultSet = this.connection.createStatement()
+                    .executeQuery(this.selectAllTimesForUserStatement(id));
 
             UserTimesDictionary dict = new UserTimesDictionary();
             while (resultSet.next()) {
@@ -176,7 +197,8 @@ public class SQLiteDataManager implements IDataManager {
     @Override
     public Map<Long, Integer> getTimesForDate(LocalDate date) {
         try {
-            ResultSet resultSet = this.connection().createStatement().executeQuery(this.selectAllTimesForDateStatement(date));
+            ResultSet resultSet = this.connection.createStatement()
+                    .executeQuery(this.selectAllTimesForDateStatement(date));
 
             Hashtable<Long, Integer> results = new Hashtable<>();
             while (resultSet.next()) {
