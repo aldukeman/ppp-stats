@@ -1,5 +1,6 @@
 package ppp.stats;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import discord4j.core.DiscordClient;
@@ -9,6 +10,7 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.TextChannel;
 import ppp.stats.data.IDataManager;
 import ppp.stats.data.InMemoryDataManager;
+import ppp.stats.data.SQLiteDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.processor.CommandProcessor;
@@ -66,7 +68,14 @@ public class PPPBot {
             return;
         }
 
-        final IDataManager dataManager = new InMemoryDataManager();
+        ILogger logger = new SystemOutLogger();
+        final IDataManager dataManager;
+        try {
+        dataManager = new SQLiteDataManager("ppp.db", logger);
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+            return;
+        }
         final String token = args[0];
         final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager);
 

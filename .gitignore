@@ -6,3 +6,4 @@ build
 
 *.class
 gradle.properties
+app/ppp.db

@@ -2,6 +2,8 @@ package ppp.stats.processor;
 
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
+import discord4j.core.object.reaction.Reaction;
+import discord4j.core.object.reaction.ReactionEmoji;
 import ppp.stats.data.IDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
@@ -26,6 +28,7 @@ public class MiniCrosswordTimeProcessor implements IProcessor {
                 DiscordUser dUser = new DiscordUser(user);
                 this.dataManager.addUserTime(dUser.getId(), time.intValue());
                 this.dataManager.setUserName(dUser.getId(), user.getUsername());
+                msg.addReaction(ReactionEmoji.unicode("🤖")).block();
                 return true;
             } else {
                 this.logger.error("Found a valid message, but no associated user");
