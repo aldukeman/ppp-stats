@@ -32,12 +32,13 @@ application {
     mainClass = 'ppp.stats.PPPBot'
 }
 
-task runWithLocalToken(type: JavaExec) {
+task runWithTestEnv(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'ppp.stats.PPPBot'
 
-    def token = project.getProperty('ppp_discord_bot_token')
-    args token
+    def token = project.getProperty('discord_bot_token')
+    def channels = project.getProperty('channel_filter')
+    args ( token, channels )
 }
 
 jar {
