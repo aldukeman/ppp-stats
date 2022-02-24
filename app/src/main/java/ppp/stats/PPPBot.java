@@ -1,7 +1,9 @@
 package ppp.stats;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
@@ -9,7 +11,6 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.TextChannel;
 import ppp.stats.data.IDataManager;
-import ppp.stats.data.InMemoryDataManager;
 import ppp.stats.data.SQLiteDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
@@ -25,10 +26,12 @@ public class PPPBot {
     final private ILogger logger = new SystemOutLogger();
     final private IProcessor[] processors;
     private long currentMaxId = 0;
+    final private List<String> channelFilter;
 
-    public PPPBot(String token, IProcessor[] processors) {
+    public PPPBot(String token, IProcessor[] processors, List<String> channelFilter) {
         this.client = DiscordClient.create(token);
         this.processors = processors;
+        this.channelFilter = channelFilter;
     }
 
     public void login() {
@@ -40,8 +43,9 @@ public class PPPBot {
             .map(MessageCreateEvent::getMessage)
             .filter(message -> message.getChannel().block() instanceof TextChannel)
             .filter(message -> {
+                if(this.channelFilter == null) { return true; }
                 String chanName = ((TextChannel)message.getChannel().block()).getName();
-                return chanName.equals("periodic-perplexing-parlances") || chanName.equals("ppp-stats-test"); })
+                return this.channelFilter.contains(chanName); })
             .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
             .filter(message -> message.getId().asLong() > this.currentMaxId)
             .subscribe(message -> {
@@ -63,12 +67,32 @@ public class PPPBot {
     }
 
     public static void main(String[] args) {
-        if(args.length != 1) {
+        ILogger logger = new SystemOutLogger();
+
+        final String TOKEN_ENV_VAR = "DISCORD_BOT_TOKEN";
+        final String token;
+        if(args.length >= 1) {
+            token = args[0];
+        } else if(System.getenv(TOKEN_ENV_VAR) != null) {
+            token = System.getenv(TOKEN_ENV_VAR);
+        } else {
             System.out.println("Missing a token");
             return;
         }
 
-        ILogger logger = new SystemOutLogger();
+        final String CHANNEL_FILTER_ENV_VAR = "CHANNEL_FILTER";
+        List<String> channelFilter = null;
+        String chanFilter = null;
+        if(args.length >= 2) {
+            chanFilter = args[1];
+        } else if(System.getenv(CHANNEL_FILTER_ENV_VAR) != null) {
+            chanFilter = System.getenv(CHANNEL_FILTER_ENV_VAR);
+        }
+        if(chanFilter != null) {
+            channelFilter = Arrays.asList(chanFilter.split(","));
+            logger.debug("Filtering on " + channelFilter);
+        }
+
         final IDataManager dataManager;
         try {
         dataManager = new SQLiteDataManager("ppp.db", logger);
@@ -76,14 +100,13 @@ public class PPPBot {
             logger.error(e.getMessage());
             return;
         }
-        final String token = args[0];
         final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager);
 
         final HashMap<String, ICommandHandler> commands = new HashMap<>();
         commands.put("times", new TimesCommandHandler(dataManager));
         final CommandProcessor commandProcessor = new CommandProcessor(commands);
         final IProcessor[] processors = { timeProcessor, commandProcessor };
-        final PPPBot bot = new PPPBot(token, processors);
+        final PPPBot bot = new PPPBot(token, processors, channelFilter);
 
         bot.login();
         bot.startListening();
