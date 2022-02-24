@@ -1,0 +1,15 @@
+version: "3.1"
+services:
+  ppp-stats:
+    container_name: ppp-stats
+    image: gradle:7-alpine
+    restart: always
+    volumes:
+      - ${PWD}:/home/gradle/project
+    working_dir: /home/gradle/project
+    command: gradle run
+    environment:
+      DISCORD_BOT_TOKEN: <TOKEN>
+
+      # A comma-separated list of channel names the bot will work in. If missing then the bot will work in all channels
+      # CHANNEL_FILTER: periodic-perplexing-parlances,ppp-stats-test
