@@ -10,23 +10,28 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.TextChannel;
+import ppp.stats.bot.IBot;
+import ppp.stats.client.DiscordMessageClient;
+import ppp.stats.client.IMessageClient;
 import ppp.stats.data.IDataManager;
 import ppp.stats.data.SQLiteDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
+import ppp.stats.models.DiscordMessage;
 import ppp.stats.processor.CommandProcessor;
 import ppp.stats.processor.IProcessor;
 import ppp.stats.processor.MiniCrosswordTimeProcessor;
 import ppp.stats.processor.commands.ICommandHandler;
+import ppp.stats.processor.commands.StatsCommandHandler;
 import ppp.stats.processor.commands.TimesCommandHandler;
 
-public class PPPBot {
+public class PPPBot implements IBot {
     final private DiscordClient client;
     private GatewayDiscordClient gateway;
     final private ILogger logger = new SystemOutLogger();
     final private IProcessor[] processors;
-    private long currentMaxId = 0;
     final private List<String> channelFilter;
+    private IMessageClient msgClient;
 
     public PPPBot(String token, IProcessor[] processors, List<String> channelFilter) {
         this.client = DiscordClient.create(token);
@@ -36,6 +41,7 @@ public class PPPBot {
 
     public void login() {
         this.gateway = this.client.login().block();
+        this.msgClient = new DiscordMessageClient(this.gateway, this.logger);
     }
 
     public void startListening() {
@@ -47,11 +53,10 @@ public class PPPBot {
                 String chanName = ((TextChannel)message.getChannel().block()).getName();
                 return this.channelFilter.contains(chanName); })
             .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
-            .filter(message -> message.getId().asLong() > this.currentMaxId)
             .subscribe(message -> {
-                this.currentMaxId = message.getId().asLong();
                 this.processMessage(message);
             });
+
         this.gateway.onDisconnect().block();
     }
 
@@ -59,7 +64,7 @@ public class PPPBot {
         this.logger.trace("Received message: " + msg.getContent());
 
         for(IProcessor proc: this.processors) {
-            if(proc.process(msg)) {
+            if(proc.process(new DiscordMessage(msg), this.msgClient)) {
                 return true;
             }
         }
@@ -95,17 +100,19 @@ public class PPPBot {
 
         final IDataManager dataManager;
         try {
-        dataManager = new SQLiteDataManager("ppp.db", logger);
+            dataManager = new SQLiteDataManager("ppp.db", logger);
         } catch (SQLException e) {
             logger.error(e.getMessage());
             return;
         }
-        final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager);
 
+        final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager, logger);
         final HashMap<String, ICommandHandler> commands = new HashMap<>();
-        commands.put("times", new TimesCommandHandler(dataManager));
-        final CommandProcessor commandProcessor = new CommandProcessor(commands);
+        commands.put("times", new TimesCommandHandler(dataManager, logger));
+        commands.put("stats", new StatsCommandHandler(dataManager, logger));
+        final CommandProcessor commandProcessor = new CommandProcessor(commands, logger);
         final IProcessor[] processors = { timeProcessor, commandProcessor };
+
         final PPPBot bot = new PPPBot(token, processors, channelFilter);
 
         bot.login();

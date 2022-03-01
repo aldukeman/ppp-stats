@@ -2,13 +2,12 @@ package ppp.stats.data;
 
 import java.time.LocalDate;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 
 import ppp.stats.data.model.UserModel;
 
 public class InMemoryDataManager implements IDataManager {
-    private Hashtable<Long, UserTimesDictionary> userTimes;
+    private Hashtable<Long, Hashtable<LocalDate, Integer>> userTimes;
     private Hashtable<Long, String> userNames;
 
     public InMemoryDataManager() {
@@ -22,25 +21,28 @@ public class InMemoryDataManager implements IDataManager {
     }
 
     @Override
-    public List<UserModel> getUserModels() {
-        return this.userNames.entrySet().stream().map(e -> new UserModel(e.getKey(), e.getValue())).toList();
+    public Map<Long, UserModel> getUserModels() {
+        Hashtable<Long, UserModel> map = new Hashtable<>();
+        for(Map.Entry<Long, String> entry: this.userNames.entrySet()) {
+            map.put(entry.getKey(), new UserModel(entry.getKey(), entry.getValue()));
+        }
+        return map;
     }
 
     @Override
-    public void addUserTime(long id, int seconds) {
-        UserTimesDictionary dict = this.userTimes.get(Long.valueOf(id));
-        LocalDate now = LocalDate.now();
+    public void addUserTime(long id, LocalDate date, int seconds) {
+        Hashtable<LocalDate, Integer> dict = this.userTimes.get(Long.valueOf(id));
         if(dict != null) {
-            dict.put(now, seconds);
+            dict.put(date, seconds);
         } else {
-            dict = new UserTimesDictionary();
-            dict.put(now, seconds);
+            dict = new Hashtable<LocalDate, Integer>();
+            dict.put(date, seconds);
             this.userTimes.put(Long.valueOf(id), dict);
         }
     }
 
     @Override
-    public UserTimesDictionary getTimesForUserId(long id) {
+    public Map<LocalDate, Integer> getTimesForUserId(long id) {
         return this.userTimes.get(Long.valueOf(id));
     }
 

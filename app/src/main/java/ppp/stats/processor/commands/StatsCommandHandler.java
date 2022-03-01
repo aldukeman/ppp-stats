@@ -10,11 +10,11 @@ import ppp.stats.logging.ILogger;
 import ppp.stats.models.IMessage;
 import ppp.stats.models.IUser;
 
-public class TimesCommandHandler implements ICommandHandler {
+public class StatsCommandHandler implements ICommandHandler {
     final private IDataManager dataManager;
     final private ILogger logger;
 
-    public TimesCommandHandler(IDataManager dataManager, ILogger logger) {
+    public StatsCommandHandler(IDataManager dataManager, ILogger logger) {
         this.dataManager = dataManager;
         this.logger = logger;
     }
@@ -24,8 +24,8 @@ public class TimesCommandHandler implements ICommandHandler {
         IUser author = msg.getAuthor();
         if (author != null) {
             Map<LocalDate, Integer> dict = this.dataManager.getTimesForUserId(author.getId());
-            BotMessage.UserMiniTimes timesMsg = new BotMessage.UserMiniTimes(author, dict);
-            msgClient.sendMiniScores(msg.getChannel(), timesMsg);
+            BotMessage.UserMiniTimesStats timesMsg = new BotMessage.UserMiniTimesStats(author, dict);
+            msgClient.sendMiniStats(msg.getChannel(), timesMsg);
         } else {
             this.logger.debug("Null author");
         }

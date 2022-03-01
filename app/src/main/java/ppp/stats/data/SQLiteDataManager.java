@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -33,13 +32,20 @@ public class SQLiteDataManager implements IDataManager {
     private void setupDB() {
         try {
             ResultSet tablesSet = this.connection.createStatement().executeQuery(this.checkForTablesString());
-            int count = tablesSet.getInt(1);
-            if (count == 0) {
-                this.logger.debug("Recreating the DB");
-                this.connection.createStatement().executeUpdate(this.createUserTableAndIndicesString());
-                this.connection.createStatement().executeUpdate(this.createMiniTableAndIndicesString());
-            } else {
-                this.logger.debug("Tables already exist");
+            List<String> tables = new ArrayList<>();
+            while(tablesSet.next()) {
+                tables.add(tablesSet.getString("name"));
+            }
+
+            Map<String, String> tableCreationMap = Map.ofEntries(
+                Map.entry(USER_TABLE_NAME, this.createUserTableAndIndicesString()),
+                Map.entry(MINI_TABLE_NAME, this.createMiniTableAndIndicesString())
+            );
+            for(Map.Entry<String, String> entry: tableCreationMap.entrySet()) {
+                if(!tables.contains(entry.getKey())) {
+                    this.connection.createStatement().executeUpdate(entry.getValue());
+                    this.logger.debug("Creating " + entry.getKey() + " table");
+                }
             }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
@@ -47,7 +53,7 @@ public class SQLiteDataManager implements IDataManager {
     }
 
     private String checkForTablesString() {
-        return "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='" + USER_TABLE_NAME + "';";
+        return "SELECT name FROM sqlite_master WHERE type='table';";
     }
 
     final static private String USER_TABLE_NAME = "User";
@@ -100,15 +106,15 @@ public class SQLiteDataManager implements IDataManager {
     }
 
     @Override
-    public List<UserModel> getUserModels() {
+    public Map<Long, UserModel> getUserModels() {
         try {
             ResultSet resultSet = this.connection.createStatement().executeQuery(this.selectAllUsersStatement());
 
-            List<UserModel> results = new ArrayList<>(resultSet.getFetchSize());
+            Hashtable<Long, UserModel> results = new Hashtable<>(resultSet.getFetchSize());
             while (resultSet.next()) {
                 long id = resultSet.getLong(USER_ID_NAME);
                 String name = resultSet.getString(USER_NAME_NAME);
-                results.add(new UserModel(id, name));
+                results.put(id, new UserModel(id, name));
             }
 
             return results;
@@ -140,40 +146,35 @@ public class SQLiteDataManager implements IDataManager {
     }
 
     @Override
-    public void addUserTime(long id, int seconds) {
+    public void addUserTime(long id, LocalDate date, int seconds) {
         try {
-            if (this.connection.createStatement().executeUpdate(this.updateMiniTimeStatement(id, seconds)) == 0) {
-                this.connection.createStatement().executeUpdate(this.insertMiniTimeStatement(id, seconds));
+            if (this.connection.createStatement().executeUpdate(this.updateMiniTimeStatement(id, date, seconds)) == 0) {
+                this.connection.createStatement().executeUpdate(this.insertMiniTimeStatement(id, date, seconds));
             }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
         }
     }
 
-    private static LocalDate MiniDate() {
-        return LocalDate.now(ZoneId.of("America/New_York"));
-    }
-
-    private String insertMiniTimeStatement(long id, int seconds) {
+    private String insertMiniTimeStatement(long id, LocalDate date, int seconds) {
         return "INSERT INTO " + MINI_TABLE_NAME + "(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + ", "
                 + MINI_TIME_NAME + ") " +
-                "VALUES (" + id + ", \"" + SQLiteDataManager.MiniDate() + "\", " + seconds + ");";
+                "VALUES (" + id + ", \"" + date + "\", " + seconds + ");";
     }
 
-    private String updateMiniTimeStatement(long id, int seconds) {
+    private String updateMiniTimeStatement(long id, LocalDate date, int seconds) {
         return "UPDATE " + MINI_TABLE_NAME + " " +
                 "SET " + MINI_TIME_NAME + "=" + seconds + " " +
-                "WHERE " + MINI_USER_ID_NAME + "=" + id + " AND " + MINI_DATE_NAME + "=\""
-                + SQLiteDataManager.MiniDate() + "\";";
+                "WHERE " + MINI_USER_ID_NAME + "=" + id + " AND " + MINI_DATE_NAME + "=\"" + date + "\";";
     }
 
     @Override
-    public UserTimesDictionary getTimesForUserId(long id) {
+    public Map<LocalDate, Integer> getTimesForUserId(long id) {
         try {
             ResultSet resultSet = this.connection.createStatement()
                     .executeQuery(this.selectAllTimesForUserStatement(id));
 
-            UserTimesDictionary dict = new UserTimesDictionary();
+            Hashtable<LocalDate, Integer> dict = new Hashtable<>();
             while (resultSet.next()) {
                 Integer time = Integer.valueOf(resultSet.getInt(MINI_TIME_NAME));
                 LocalDate date = LocalDate.parse(resultSet.getString(MINI_DATE_NAME));

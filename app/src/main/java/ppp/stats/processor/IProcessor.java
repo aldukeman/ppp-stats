@@ -1,7 +1,8 @@
 package ppp.stats.processor;
 
-import discord4j.core.object.entity.Message;
+import ppp.stats.client.IMessageClient;
+import ppp.stats.models.IMessage;
 
 public interface IProcessor {
-    boolean process(Message msg);
+    boolean process(IMessage msg, IMessageClient msgClient);
 }
