@@ -1,7 +1,8 @@
 package ppp.stats.processor.commands;
 
-import discord4j.core.object.entity.Message;
+import ppp.stats.client.IMessageClient;
+import ppp.stats.models.IMessage;
 
 public interface ICommandHandler {
-    void process(Message msg);
+    void process(IMessage msg, IMessageClient msgClient);
 }

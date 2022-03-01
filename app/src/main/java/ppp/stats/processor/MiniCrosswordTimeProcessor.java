@@ -1,33 +1,34 @@
 package ppp.stats.processor;
 
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.User;
-import discord4j.core.object.reaction.ReactionEmoji;
+import ppp.stats.client.BotMessage;
+import ppp.stats.client.IMessageClient;
 import ppp.stats.data.IDataManager;
 import ppp.stats.logging.ILogger;
-import ppp.stats.logging.SystemOutLogger;
-import ppp.stats.models.DiscordUser;
+import ppp.stats.models.IMessage;
+import ppp.stats.models.IUser;
 import ppp.stats.parser.MiniCrosswordTimeParser;
 
 public class MiniCrosswordTimeProcessor implements IProcessor {
-    private IDataManager dataManager;
-    private MiniCrosswordTimeParser parser = new MiniCrosswordTimeParser();
-    private ILogger logger = new SystemOutLogger();
+    final private MiniCrosswordTimeParser parser = new MiniCrosswordTimeParser();
+    final private IDataManager dataManager;
+    final private ILogger logger;
 
-    public MiniCrosswordTimeProcessor(IDataManager dataManager) {
+    public MiniCrosswordTimeProcessor(IDataManager dataManager, ILogger logger) {
         this.dataManager = dataManager;
+        this.logger = logger;
     }
 
     @Override
-    public boolean process(Message msg) {
+    public boolean process(IMessage msg, IMessageClient msgClient) {
         Integer time = this.parser.getTime(msg.getContent());
         if(time != null) {
-            User user = msg.getAuthor().get();
+            IUser user = msg.getAuthor();
             if(user != null) {
-                DiscordUser dUser = new DiscordUser(user);
-                this.dataManager.addUserTime(dUser.getId(), time.intValue());
-                this.dataManager.setUserName(dUser.getId(), user.getUsername());
-                msg.addReaction(ReactionEmoji.unicode("🤖")).block();
+                long id = user.getId();
+                this.dataManager.addUserTime(id, time.intValue());
+                this.dataManager.setUserName(id, user.getUsername());
+                msgClient.acknowledgeMessage(msg.getChannel(), new BotMessage.AcknowledgeMessage(msg));
+                this.logger.trace("Processed time: " + time + ", id: " + id);
                 return true;
             } else {
                 this.logger.error("Found a valid message, but no associated user");
@@ -35,5 +36,4 @@ public class MiniCrosswordTimeProcessor implements IProcessor {
         }
         return false;
     }
-    
 }

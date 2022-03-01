@@ -1,15 +1,23 @@
 package ppp.stats.data;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.ZoneId;
 import java.util.Map;
 
 import ppp.stats.data.model.UserModel;
 
 public interface IDataManager {
     void setUserName(long id, String name);
-    List<UserModel> getUserModels();
-    void addUserTime(long id, int seconds);
-    UserTimesDictionary getTimesForUserId(long id);
+    Map<Long, UserModel> getUserModels();
+    void addUserTime(long id, LocalDate date, int seconds);
+    Map<LocalDate, Integer> getTimesForUserId(long id);
     Map<Long, Integer> getTimesForDate(LocalDate date);
+
+    static LocalDate MiniDate() {
+        return LocalDate.now(ZoneId.of("America/New_York"));
+    }
+
+    default void addUserTime(long id, int seconds) {
+        this.addUserTime(id, IDataManager.MiniDate(), seconds);
+    }
 }

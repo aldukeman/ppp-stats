@@ -2,18 +2,23 @@ package ppp.stats.processor;
 
 import java.util.Map;
 
-import discord4j.core.object.entity.Message;
+import ppp.stats.client.BotMessage;
+import ppp.stats.client.IMessageClient;
+import ppp.stats.logging.ILogger;
+import ppp.stats.models.IMessage;
 import ppp.stats.processor.commands.ICommandHandler;
 
 public class CommandProcessor implements IProcessor {
-    private Map<String, ICommandHandler> commands;
+    private final Map<String, ICommandHandler> commands;
+    private final ILogger logger;
 
-    public CommandProcessor(Map<String, ICommandHandler> commands) {
+    public CommandProcessor(Map<String, ICommandHandler> commands, ILogger logger) {
         this.commands = commands;
+        this.logger = logger;
     }
 
     @Override
-    public boolean process(Message msg) {
+    public boolean process(IMessage msg, IMessageClient msgClient) {
         String message = msg.getContent();
         if(!message.startsWith("!ppp")) { return false; }
         if(message.length() <= 5) { return false; }
@@ -21,7 +26,8 @@ public class CommandProcessor implements IProcessor {
         String cmd = message.substring(5);
         ICommandHandler handler = this.commands.get(cmd);
         if(handler != null) {
-            handler.process(msg);
+            this.logger.trace("Handling command: " + cmd);
+            handler.process(msg, msgClient);
         } else {
             String resp = "```";
             resp += "Command not recognized. The following are supported:";
@@ -29,21 +35,10 @@ public class CommandProcessor implements IProcessor {
                 resp += "\n- " + verb;
             }
             resp += "\n```";
-            msg.getChannel().block().createMessage(resp).block();
+
+            msgClient.sendString(msg.getChannel(), new BotMessage.String(resp));
         }
 
         return true;
     }
-
-    // private String headers() {
-    //     return "|Date|Time|\n|:-:|:-:|";
-    // }
-
-    // private String rowString(LocalDate date, Integer time) {
-    //     int sec = time.intValue();
-    //     int min = sec / 60;
-    //     sec = sec % 60;
-    //     String timeStr = min + ":" + String.format("%2s", sec).replace(" ", "0");
-    //     return "|" + date + "|" + timeStr + "|";
-    // }
 }
