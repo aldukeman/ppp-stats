@@ -1,6 +1,8 @@
 package ppp.stats.logging;
 
 public class SystemOutLogger implements ILogger {
+    public static SystemOutLogger shared = new SystemOutLogger();
+    
     @Override
     public void error(String log) {
         System.out.println("E/" + log);

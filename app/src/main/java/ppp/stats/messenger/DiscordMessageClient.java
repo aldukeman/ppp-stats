@@ -1,7 +1,6 @@
-package ppp.stats.client;
+package ppp.stats.messenger;
 
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +12,10 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.EmbedCreateSpec;
 import ppp.stats.logging.ILogger;
+import ppp.stats.messenger.message.AcknowledgeMessage;
+import ppp.stats.messenger.message.BasicMessage;
+import ppp.stats.messenger.message.UserMiniStatsMessage;
+import ppp.stats.messenger.message.UserMiniTimesMessage;
 import ppp.stats.models.IMessage;
 import ppp.stats.models.ITextChannel;
 import ppp.stats.models.IUser;
@@ -40,7 +43,7 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     @Override
-    public void sendString(ITextChannel channel, BotMessage.String msg) {
+    public void sendBasicMessage(ITextChannel channel, BasicMessage msg) {
         MessageChannel msgChannel = this.messageChannel(channel);
         if (msgChannel == null) {
             return;
@@ -50,7 +53,7 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     @Override
-    public void sendMiniScores(ITextChannel channel, BotMessage.UserMiniTimes msg) {
+    public void sendUserMiniTimes(ITextChannel channel, UserMiniTimesMessage msg) {
         MessageChannel msgChannel = this.messageChannel(channel);
         if (msgChannel == null) {
             return;
@@ -82,9 +85,10 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     @Override
-    public void sendMiniStats(ITextChannel channel, BotMessage.UserMiniTimesStats msg) {
+    public void sendUserMiniStats(ITextChannel channel, UserMiniStatsMessage msg) {
         MessageChannel msgChannel = this.messageChannel(channel);
         if (msgChannel == null) {
+            this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
             return;
         }
 
@@ -92,8 +96,8 @@ public class DiscordMessageClient implements IMessageClient {
         Map<LocalDate, Integer> timesMap = msg.timesMap;
 
         int numEntries = timesMap.size();
-        if (numEntries < 2) {
-            this.sendString(channel, new BotMessage.String("Not enough entries for user " + requestor.getUsername()));
+        if (numEntries < 1) {
+            this.sendBasicMessage(channel, new BasicMessage("Not enough entries for user " + requestor.getUsername()));
             return;
         }
 
@@ -124,7 +128,7 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     @Override
-    public void acknowledgeMessage(ITextChannel channel, BotMessage.AcknowledgeMessage msg) {
+    public void sendMessageAcknowledgement(ITextChannel channel, AcknowledgeMessage msg) {
         Message message = this.message(channel, msg.message);
         if (message == null) {
             return;
