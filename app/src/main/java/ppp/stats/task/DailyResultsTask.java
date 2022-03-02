@@ -6,10 +6,8 @@ import java.time.ZoneOffset;
 import ppp.stats.data.IDataManager;
 import ppp.stats.logging.ILogger;
 
-public class DailyResultsTask implements IDailyTask {
-    private ILogger logger;
-
-    public DailyResultsTask(ILogger logger, IDataManager dataManager) {
+public class ResultsTask implements IDailyTask {
+    public DailyResultsTask(IDataManager dataManager) {
         this.logger = logger;
     }
 

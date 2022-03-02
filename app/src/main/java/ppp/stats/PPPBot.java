@@ -10,33 +10,37 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.TextChannel;
+import ppp.stats.action.IAction;
 import ppp.stats.bot.IBot;
-import ppp.stats.client.DiscordMessageClient;
-import ppp.stats.client.IMessageClient;
 import ppp.stats.data.IDataManager;
 import ppp.stats.data.SQLiteDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
+import ppp.stats.messenger.DiscordMessageClient;
+import ppp.stats.messenger.IMessageClient;
 import ppp.stats.models.DiscordMessage;
-import ppp.stats.processor.CommandProcessor;
-import ppp.stats.processor.IProcessor;
-import ppp.stats.processor.MiniCrosswordTimeProcessor;
-import ppp.stats.processor.commands.ICommandHandler;
-import ppp.stats.processor.commands.StatsCommandHandler;
-import ppp.stats.processor.commands.TimesCommandHandler;
+import ppp.stats.models.IMessage;
+import ppp.stats.parser.CommandParser;
+import ppp.stats.parser.IParser;
+import ppp.stats.parser.MiniCrosswordTimeParser;
+import ppp.stats.parser.command.ICommand;
+import ppp.stats.parser.command.StatsCommand;
+import ppp.stats.parser.command.TimesCommand;
 
 public class PPPBot implements IBot {
     final private DiscordClient client;
     private GatewayDiscordClient gateway;
     final private ILogger logger = new SystemOutLogger();
-    final private IProcessor[] processors;
+    final private IParser[] parsers;
     final private List<String> channelFilter;
     private IMessageClient msgClient;
+    final private IDataManager dataManager;
 
-    public PPPBot(String token, IProcessor[] processors, List<String> channelFilter) {
+    public PPPBot(String token, IParser[] parsers, List<String> channelFilter, IDataManager dataManager) {
         this.client = DiscordClient.create(token);
-        this.processors = processors;
+        this.parsers = parsers;
         this.channelFilter = channelFilter;
+        this.dataManager = dataManager;
     }
 
     public void login() {
@@ -46,16 +50,19 @@ public class PPPBot implements IBot {
 
     public void startListening() {
         this.gateway.getEventDispatcher().on(MessageCreateEvent.class)
-            .map(MessageCreateEvent::getMessage)
-            .filter(message -> message.getChannel().block() instanceof TextChannel)
-            .filter(message -> {
-                if(this.channelFilter == null) { return true; }
-                String chanName = ((TextChannel)message.getChannel().block()).getName();
-                return this.channelFilter.contains(chanName); })
-            .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
-            .subscribe(message -> {
-                this.processMessage(message);
-            });
+                .map(MessageCreateEvent::getMessage)
+                .filter(message -> message.getChannel().block() instanceof TextChannel)
+                .filter(message -> {
+                    if (this.channelFilter == null) {
+                        return true;
+                    }
+                    String chanName = ((TextChannel) message.getChannel().block()).getName();
+                    return this.channelFilter.contains(chanName);
+                })
+                .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
+                .subscribe(message -> {
+                    this.processMessage(message);
+                });
 
         this.gateway.onDisconnect().block();
     }
@@ -63,8 +70,12 @@ public class PPPBot implements IBot {
     private boolean processMessage(Message msg) {
         this.logger.trace("Received message: " + msg.getContent());
 
-        for(IProcessor proc: this.processors) {
-            if(proc.process(new DiscordMessage(msg), this.msgClient)) {
+        IMessage message = new DiscordMessage(msg);
+        for (IParser parser : this.parsers) {
+            IAction action = parser.parse(message);
+            if (action != null) {
+                action.process(message, this.dataManager)
+                        .send(this.msgClient, message.getChannel());
                 return true;
             }
         }
@@ -76,9 +87,9 @@ public class PPPBot implements IBot {
 
         final String TOKEN_ENV_VAR = "DISCORD_BOT_TOKEN";
         final String token;
-        if(args.length >= 1) {
+        if (args.length >= 1) {
             token = args[0];
-        } else if(System.getenv(TOKEN_ENV_VAR) != null) {
+        } else if (System.getenv(TOKEN_ENV_VAR) != null) {
             token = System.getenv(TOKEN_ENV_VAR);
         } else {
             System.out.println("Missing a token");
@@ -88,12 +99,12 @@ public class PPPBot implements IBot {
         final String CHANNEL_FILTER_ENV_VAR = "CHANNEL_FILTER";
         List<String> channelFilter = null;
         String chanFilter = null;
-        if(args.length >= 2) {
+        if (args.length >= 2) {
             chanFilter = args[1];
-        } else if(System.getenv(CHANNEL_FILTER_ENV_VAR) != null) {
+        } else if (System.getenv(CHANNEL_FILTER_ENV_VAR) != null) {
             chanFilter = System.getenv(CHANNEL_FILTER_ENV_VAR);
         }
-        if(chanFilter != null) {
+        if (chanFilter != null) {
             channelFilter = Arrays.asList(chanFilter.split(","));
             logger.debug("Filtering on " + channelFilter);
         }
@@ -106,14 +117,13 @@ public class PPPBot implements IBot {
             return;
         }
 
-        final MiniCrosswordTimeProcessor timeProcessor = new MiniCrosswordTimeProcessor(dataManager, logger);
-        final HashMap<String, ICommandHandler> commands = new HashMap<>();
-        commands.put("times", new TimesCommandHandler(dataManager, logger));
-        commands.put("stats", new StatsCommandHandler(dataManager, logger));
-        final CommandProcessor commandProcessor = new CommandProcessor(commands, logger);
-        final IProcessor[] processors = { timeProcessor, commandProcessor };
+        final HashMap<String, ICommand> commands = new HashMap<>();
+        commands.put("times", new TimesCommand());
+        commands.put("stats", new StatsCommand());
+        final CommandParser commandParser = new CommandParser(commands);
+        final IParser[] processors = { new MiniCrosswordTimeParser(), commandParser };
 
-        final PPPBot bot = new PPPBot(token, processors, channelFilter);
+        final PPPBot bot = new PPPBot(token, processors, channelFilter, dataManager);
 
         bot.login();
         bot.startListening();
