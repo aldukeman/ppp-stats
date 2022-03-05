@@ -1,6 +1,7 @@
 package ppp.stats.messenger;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,11 +15,13 @@ import discord4j.core.spec.EmbedCreateSpec;
 import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.message.AcknowledgeMessage;
 import ppp.stats.messenger.message.BasicMessage;
+import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.messenger.message.UserMiniStatsMessage;
 import ppp.stats.messenger.message.UserMiniTimesMessage;
 import ppp.stats.models.IMessage;
 import ppp.stats.models.ITextChannel;
 import ppp.stats.models.IUser;
+import ppp.stats.utility.Pair;
 
 public class DiscordMessageClient implements IMessageClient {
     private GatewayDiscordClient client;
@@ -107,7 +110,7 @@ public class DiscordMessageClient implements IMessageClient {
         List<Integer> times = timesMap.values().stream().sorted().toList();
         int min = times.get(0).intValue();
         float median;
-        if(times.size() % 2 == 0) {
+        if (times.size() % 2 == 0) {
             int lowerIdx = times.size() / 2 - 1;
             median = (times.get(lowerIdx).floatValue() + times.get(lowerIdx + 1).floatValue()) / 2;
         } else {
@@ -123,6 +126,46 @@ public class DiscordMessageClient implements IMessageClient {
                 "Average: " + this.timeString(average) + "\n" +
                 "Max: " + this.timeString(max) + "\n" +
                 "```";
+
+        msgChannel.createMessage(resp).block();
+    }
+
+    @Override
+    public void sendMiniResultsForDate(ITextChannel channel, MiniResultsForDateMessage msg) {
+        MessageChannel msgChannel = this.messageChannel(channel);
+        if (msgChannel == null) {
+            this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
+            return;
+        }
+        if(msg.rows.size() == 0) {
+            this.logger.error("No data rows to send");
+            return;
+        }
+
+        List<Pair<String, Integer>> rowData = msg.rows;
+
+        int nameColLength = rowData.stream()
+                .map(e -> e.first.length())
+                .max((a, b) -> a - b)
+                .get()
+                .intValue();
+        nameColLength += 5;
+
+        String headers = String.format("%-" + nameColLength + "s | Time", "Name");
+        String resp = "**Mini crossword results for " + msg.date + "**\n" +
+                "Congratulations " + rowData.get(0).first + " for getting the top score!\n" +
+                "```\n" +
+                headers + "\n";
+        String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
+        resp += splitter + "\n";
+        
+        List<String> rows = new ArrayList<>();
+        for(var entry: rowData) {
+            rows.add(String.format("%-" + nameColLength + "s | " + this.timeString(entry.second), entry.first));
+        }
+
+        resp += String.join("\n", rows);
+        resp += "```";
 
         msgChannel.createMessage(resp).block();
     }

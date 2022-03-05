@@ -1,6 +1,6 @@
 package ppp.stats.action;
 
-import ppp.stats.data.IDataManager;
+import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.messenger.message.AcknowledgeMessage;
@@ -24,10 +24,10 @@ public class ProcessMiniTimeAction implements IAction {
     }
     
     @Override
-    public IBotMessage process(IMessage message, IDataManager dataManager) {
+    public IBotMessage process(IMessage message, IChannelDataManager dataManager) {
         this.logger.trace("Adding mini time for user " + user.getId());
         dataManager.setUserName(user.getId(), user.getUsername());
-        dataManager.addUserTime(user.getId(), IDataManager.MiniDate(), this.time.intValue());
+        dataManager.addUserTime(user.getId(), IChannelDataManager.MiniDate(), this.time.intValue());
         return new AcknowledgeMessage(message);
     }
 }

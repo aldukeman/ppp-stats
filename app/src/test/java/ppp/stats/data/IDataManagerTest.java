@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 import ppp.stats.data.model.UserModel;
 
 public abstract class IDataManagerTest extends TestCase {
-    protected IDataManager testDataManager;
+    protected IChannelDataManager testDataManager;
 
     @Test
     public void testSetUserName() {
@@ -44,7 +44,7 @@ public abstract class IDataManagerTest extends TestCase {
         long id = 1;
         this.testDataManager.setUserName(id, "Alice");
 
-        LocalDate today = IDataManager.MiniDate();
+        LocalDate today = IChannelDataManager.MiniDate();
         this.testDataManager.addUserTime(id, 7);
         Map<LocalDate, Integer> times = this.testDataManager.getTimesForUserId(id);
         assertEquals(times.size(), 1);
@@ -63,7 +63,7 @@ public abstract class IDataManagerTest extends TestCase {
         this.testDataManager.setUserName(1, "Alice");
         this.testDataManager.setUserName(2, "Bob");
 
-        LocalDate today = IDataManager.MiniDate();
+        LocalDate today = IChannelDataManager.MiniDate();
         this.testDataManager.addUserTime(1, 7);
         this.testDataManager.addUserTime(2, 8);
         Map<Long, Integer> results = this.testDataManager.getTimesForDate(today);

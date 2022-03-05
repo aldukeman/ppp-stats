@@ -6,7 +6,7 @@ import java.util.Map;
 
 import ppp.stats.data.model.UserModel;
 
-public interface IDataManager {
+public interface IChannelDataManager {
     void setUserName(long id, String name);
     Map<Long, UserModel> getUserModels();
     void addUserTime(long id, LocalDate date, int seconds);
@@ -18,6 +18,6 @@ public interface IDataManager {
     }
 
     default void addUserTime(long id, int seconds) {
-        this.addUserTime(id, IDataManager.MiniDate(), seconds);
+        this.addUserTime(id, IChannelDataManager.MiniDate(), seconds);
     }
 }

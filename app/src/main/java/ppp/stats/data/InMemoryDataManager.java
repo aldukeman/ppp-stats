@@ -6,7 +6,7 @@ import java.util.Map;
 
 import ppp.stats.data.model.UserModel;
 
-public class InMemoryDataManager implements IDataManager {
+public class InMemoryDataManager implements IChannelDataManager {
     private Hashtable<Long, Hashtable<LocalDate, Integer>> userTimes;
     private Hashtable<Long, String> userNames;
 
@@ -49,9 +49,7 @@ public class InMemoryDataManager implements IDataManager {
     @Override
     public Map<Long, Integer> getTimesForDate(LocalDate date) {
         Hashtable<Long, Integer> results = new Hashtable<>();
-        var iter = this.userTimes.entrySet().iterator();
-        while(iter.hasNext()) {
-            var entry = iter.next();
+        for(var entry: this.userTimes.entrySet()) {
             Long id = entry.getKey();
             Integer time = entry.getValue().get(date);
             results.put(id, time);
