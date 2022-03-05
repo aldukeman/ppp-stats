@@ -2,7 +2,7 @@ package ppp.stats.action;
 
 import org.junit.Test;
 
-import ppp.stats.data.IDataManager;
+import ppp.stats.data.IChannelDataManager;
 import ppp.stats.data.InMemoryDataManager;
 import ppp.stats.data.model.UserModel;
 import ppp.stats.logging.NoOpLogger;
@@ -24,14 +24,14 @@ public class ProcessMiniTimeActionTest {
 
         MessageMock msg = new MessageMock();
 
-        IDataManager dm = new InMemoryDataManager();
+        IChannelDataManager dm = new InMemoryDataManager();
         ProcessMiniTimeAction action = new ProcessMiniTimeAction(user, 7, new NoOpLogger());
         IBotMessage botMsg = action.process(msg, dm);
         assert(botMsg instanceof AcknowledgeMessage);
 
         Map<LocalDate, Integer> dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 1);
-        assertEquals(dict.get(IDataManager.MiniDate()), Integer.valueOf(7));
+        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(7));
 
         Map<Long, UserModel> users = dm.getUserModels();
         assertEquals(users.size(), 1);
@@ -47,7 +47,7 @@ public class ProcessMiniTimeActionTest {
 
         dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 1);
-        assertEquals(dict.get(IDataManager.MiniDate()), Integer.valueOf(8));
+        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(8));
 
         users = dm.getUserModels();
         assertEquals(users.size(), 2);
@@ -66,9 +66,9 @@ public class ProcessMiniTimeActionTest {
 
         MessageMock msg = new MessageMock();
 
-        IDataManager dm = new InMemoryDataManager();
+        IChannelDataManager dm = new InMemoryDataManager();
         dm.setUserName(1, "Alice");
-        LocalDate yesterday = IDataManager.MiniDate().plusDays(-1);
+        LocalDate yesterday = IChannelDataManager.MiniDate().plusDays(-1);
         dm.addUserTime(1, yesterday, 7);
         ProcessMiniTimeAction action = new ProcessMiniTimeAction(user, 8, new NoOpLogger());
         IBotMessage botMsg = action.process(msg, dm);
@@ -77,6 +77,6 @@ public class ProcessMiniTimeActionTest {
         Map<LocalDate, Integer> dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 2);
         assertEquals(dict.get(yesterday), Integer.valueOf(7));
-        assertEquals(dict.get(IDataManager.MiniDate()), Integer.valueOf(8));
+        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(8));
     }
 }

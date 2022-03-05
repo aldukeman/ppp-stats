@@ -3,7 +3,7 @@ package ppp.stats.action;
 import java.time.LocalDate;
 import java.util.Map;
 
-import ppp.stats.data.IDataManager;
+import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.messenger.message.BasicMessage;
@@ -16,7 +16,7 @@ public class SendMiniTimesAction implements IAction {
     private final ILogger logger = SystemOutLogger.shared;
     
     @Override
-    public IBotMessage process(IMessage message, IDataManager dataManager) {
+    public IBotMessage process(IMessage message, IChannelDataManager dataManager) {
         IUser requestor = message.getAuthor();
         if (requestor != null) {
             Map<LocalDate, Integer> dict = dataManager.getTimesForUserId(requestor.getId());

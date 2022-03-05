@@ -14,7 +14,7 @@ import java.util.Map;
 import ppp.stats.data.model.UserModel;
 import ppp.stats.logging.ILogger;
 
-public class SQLiteDataManager implements IDataManager {
+public class SQLiteDataManager implements IChannelDataManager {
     final private String filename;
     final private ILogger logger;
     final private Connection connection;
@@ -41,7 +41,7 @@ public class SQLiteDataManager implements IDataManager {
                 Map.entry(USER_TABLE_NAME, this.createUserTableAndIndicesString()),
                 Map.entry(MINI_TABLE_NAME, this.createMiniTableAndIndicesString())
             );
-            for(Map.Entry<String, String> entry: tableCreationMap.entrySet()) {
+            for(var entry: tableCreationMap.entrySet()) {
                 if(!tables.contains(entry.getKey())) {
                     this.connection.createStatement().executeUpdate(entry.getValue());
                     this.logger.debug("Creating " + entry.getKey() + " table");
