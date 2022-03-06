@@ -32,6 +32,11 @@ application {
     mainClass = 'ppp.stats.Main'
 }
 
+task runInProd(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'ppp.stats.Main'
+}
+
 task runWithTestEnv(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'ppp.stats.Main'
