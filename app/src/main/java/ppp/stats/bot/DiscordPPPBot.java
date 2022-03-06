@@ -73,7 +73,8 @@ public class DiscordPPPBot implements IBot {
 
     private void scheduleNextExecution(ITask task) {
         LocalDateTime next = task.nextExecutionDateTime();
-        long delay = Duration.between(LocalDateTime.now(), next).toSeconds();
+        Duration delay = Duration.between(LocalDateTime.now(), next);
+        long delayInNanos = delay.toNanos();
         DiscordPPPBot bot = this;
         this.scheduledService.schedule(new Runnable() {
             public void run() {
@@ -81,7 +82,9 @@ public class DiscordPPPBot implements IBot {
                 task.execute(bot.dataManager).send(bot.msgClient, bot.channel);
                 bot.scheduleNextExecution(task);
             }
-        }, delay, TimeUnit.SECONDS);
+        }, delayInNanos, TimeUnit.NANOSECONDS);
+
+        this.logger.trace("Scheduled " + task + " to execute in " + delay.toSeconds() + " seconds.");
     }
 
     public void startListening() {

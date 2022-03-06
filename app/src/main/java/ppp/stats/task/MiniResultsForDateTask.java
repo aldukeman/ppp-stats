@@ -1,9 +1,13 @@
 package ppp.stats.task;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +20,7 @@ import ppp.stats.utility.Pair;
 public class MiniResultsForDateTask implements ITask {
     @Override
     public IBotMessage execute(IChannelDataManager dataManager) {
-        LocalDate date = IChannelDataManager.MiniDate();
+        LocalDate date = IChannelDataManager.MiniDate().minusDays(4);
 
         Map<Long, Integer> times = dataManager.getTimesForDate(date);
         Map<Long, UserModel> names = dataManager.getUserModels();
@@ -31,11 +35,14 @@ public class MiniResultsForDateTask implements ITask {
 
     @Override
     public LocalDateTime nextExecutionDateTime() {
-        LocalTime time = LocalTime.now(ZoneId.of("America/New_York")).minusMinutes(15);
-        if(LocalTime.now().isAfter(time)) {
-            return LocalDateTime.of(LocalDate.now().plusDays(1), time);
+        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(), LocalTime.of(20, 55)).atZone(ZoneId.of("America/New_York"));
+        ZonedDateTime now = ZonedDateTime.now();
+        Duration duration;
+        if(todaysReset.isAfter(now)) {
+            duration = Duration.between(now, todaysReset);
         } else {
-            return LocalDateTime.of(LocalDate.now(), time);
+            duration = Duration.between(now, todaysReset.plusDays(1));
         }
+        return LocalDateTime.now().plus(duration);
     }
 }
