@@ -11,4 +11,9 @@ public class StatsCommand implements ICommand {
         if(tokens.size() == 0) { return new SendMiniStatsAction(); }
         return null;
     }
+
+    @Override
+    public String helpMessage() {
+        return "Produce a variey of statistics about the user's crossword times";
+    }
 }

@@ -18,14 +18,19 @@ public class CommandParser implements IParser {
     }
 
     private IAction sendHelpAction() {
-        String resp = "```";
-        resp += "Command not recognized. The following are supported:";
-        for(String verb: this.commands.keySet()) {
-            resp += "\n- " + verb;
-        }
-        resp += "\n```";
+        if(this.commands.isEmpty()) { return new SendBasicMessageAction("No commands are supported"); }
 
-        return new SendBasicMessageAction(resp);
+        List<String> lines = new ArrayList<>(this.commands.size() + 5);
+        lines.add("```");
+        lines.add("Command not recognized. The following are supported:");
+
+        int cmdLength = this.commands.keySet().stream().map(e -> e.length()).max((a, b) -> a - b).get();
+        for(var cmd: this.commands.entrySet()) {
+            lines.add("\t" + String.format("%-" + cmdLength + "s", cmd.getKey()) + "\t" + cmd.getValue().helpMessage());
+        }
+        lines.add("```");
+
+        return new SendBasicMessageAction(String.join("\n", lines));
     }
 
     @Override

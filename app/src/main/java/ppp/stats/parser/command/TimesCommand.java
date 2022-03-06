@@ -11,4 +11,9 @@ public class TimesCommand implements ICommand {
         if(command.size() == 0) { return new SendMiniTimesAction(); }
         return null;
     }
+
+    @Override
+    public String helpMessage() {
+        return "Get all the recorded mini crossword times for the user";
+    }
 }
