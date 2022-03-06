@@ -20,7 +20,7 @@ import ppp.stats.utility.Pair;
 public class MiniResultsForDateTask implements ITask {
     @Override
     public IBotMessage execute(IChannelDataManager dataManager) {
-        LocalDate date = IChannelDataManager.MiniDate().minusDays(4);
+        LocalDate date = IChannelDataManager.MiniDate();
 
         Map<Long, Integer> times = dataManager.getTimesForDate(date);
         Map<Long, UserModel> names = dataManager.getUserModels();
