@@ -29,12 +29,12 @@ dependencies {
 
 application {
     // Define the main class for the application.
-    mainClass = 'ppp.stats.PPPBot'
+    mainClass = 'ppp.stats.Main'
 }
 
 task runWithTestEnv(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'ppp.stats.PPPBot'
+    mainClass = 'ppp.stats.Main'
 
     def token = project.getProperty('discord_bot_token')
     def channels = project.getProperty('channel_filter')
@@ -43,6 +43,6 @@ task runWithTestEnv(type: JavaExec) {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'ppp.stats.PPPBot'
+        attributes 'Main-Class': 'ppp.stats.Main'
     }
 }

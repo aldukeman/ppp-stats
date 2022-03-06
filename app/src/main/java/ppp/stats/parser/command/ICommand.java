@@ -6,4 +6,5 @@ import ppp.stats.action.IAction;
 
 public interface ICommand {
     IAction parse(List<String> command);
+    String helpMessage();
 }
