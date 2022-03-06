@@ -7,7 +7,7 @@ services:
     volumes:
       - ${PWD}:/home/gradle/project
     working_dir: /home/gradle/project
-    command: gradle run
+    command: gradle runInProd
     environment:
       DISCORD_BOT_TOKEN: <TOKEN>
 
