@@ -78,7 +78,6 @@ public class DiscordPPPBot implements IBot {
         DiscordPPPBot bot = this;
         this.scheduledService.schedule(new Runnable() {
             public void run() {
-                bot.logger.trace("Executing " + task);
                 task.execute(bot.dataManager).send(bot.msgClient, bot.channel);
                 bot.scheduleNextExecution(task);
             }

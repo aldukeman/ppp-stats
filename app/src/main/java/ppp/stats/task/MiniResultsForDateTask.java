@@ -13,14 +13,23 @@ import java.util.Map;
 
 import ppp.stats.data.IChannelDataManager;
 import ppp.stats.data.model.UserModel;
+import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.message.IBotMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.utility.Pair;
 
 public class MiniResultsForDateTask implements ITask {
+    private final ILogger logger;
+
+    public MiniResultsForDateTask(ILogger logger) {
+        this.logger = logger;
+    }
+
     @Override
     public IBotMessage execute(IChannelDataManager dataManager) {
         LocalDate date = IChannelDataManager.MiniDate();
+
+        this.logger.trace("Executing " + this + " for date: " + date);
 
         Map<Long, Integer> times = dataManager.getTimesForDate(date);
         Map<Long, UserModel> names = dataManager.getUserModels();
@@ -29,13 +38,15 @@ public class MiniResultsForDateTask implements ITask {
             .map(e -> new Pair<Long, Integer>(e.getKey(), e.getValue()))
             .map(e -> new Pair<String, Integer>(names.get(e.first).getName(), e.second))
             .toList();
+
+        this.logger.trace("Found " + rows.size() + " results to send");
         
         return new MiniResultsForDateMessage(date, rows);
     }
 
     @Override
     public LocalDateTime nextExecutionDateTime() {
-        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(), LocalTime.of(20, 55)).atZone(ZoneId.of("America/New_York"));
+        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(), LocalTime.of(20, 25)).atZone(ZoneId.of("America/New_York"));
         ZonedDateTime now = ZonedDateTime.now();
         Duration duration;
         if(todaysReset.isAfter(now)) {
