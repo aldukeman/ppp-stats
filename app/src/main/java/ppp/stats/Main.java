@@ -65,7 +65,7 @@ public class Main {
         parsers.add(commandParser);
 
         final List<ITask> tasks = new ArrayList<>();
-        tasks.add(new MiniResultsForDateTask());
+        tasks.add(new MiniResultsForDateTask(logger));
 
         final DiscordPPPBot bot = new DiscordPPPBot(token, parsers, tasks, channelFilter, dataManager, logger);
 
