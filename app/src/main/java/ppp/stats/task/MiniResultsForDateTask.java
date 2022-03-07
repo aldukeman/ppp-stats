@@ -46,8 +46,9 @@ public class MiniResultsForDateTask implements ITask {
 
     @Override
     public LocalDateTime nextExecutionDateTime() {
-        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(), LocalTime.of(20, 25)).atZone(ZoneId.of("America/New_York"));
-        ZonedDateTime now = ZonedDateTime.now();
+        ZoneId nyt = ZoneId.of("America/New_York");
+        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(nyt), LocalTime.of(20, 25)).atZone(nyt);
+        ZonedDateTime now = ZonedDateTime.now(nyt);
         Duration duration;
         if(todaysReset.isAfter(now)) {
             duration = Duration.between(now, todaysReset);

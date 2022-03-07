@@ -17,8 +17,9 @@ public interface IChannelDataManager {
     Map<Long, Integer> getTimesForDate(LocalDate date);
 
     static LocalDate MiniDate() {
-        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(), LocalTime.of(20, 30)).atZone(ZoneId.of("America/New_York"));
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/New_York"));
+        ZoneId nyt = ZoneId.of("America/New_York");
+        ZonedDateTime todaysReset = LocalDateTime.of(LocalDate.now(nyt), LocalTime.of(20, 30)).atZone(nyt);
+        ZonedDateTime now = ZonedDateTime.now(nyt);
         if(now.isBefore(todaysReset)) {
             return todaysReset.toLocalDate();
         } else {
