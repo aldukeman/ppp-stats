@@ -62,29 +62,62 @@ public class DiscordMessageClient implements IMessageClient {
             return;
         }
 
-        String resp;
         if (msg.timesMap == null || msg.timesMap.size() == 0) {
-            resp = "No times have been recorded for " + msg.requestor.getUsername();
+            String resp = "No times have been recorded for " + msg.requestor.getUsername();
             msgChannel.createMessage(resp).block();
-        } else {
-            List<LocalDate> dates = msg.timesMap.keySet().stream().sorted((e1, e2) -> e1.compareTo(e2)).toList();
-            List<String> dateStrings = dates.stream().map(d -> d.toString()).toList();
-            String dateString = String.join("\n", dateStrings);
-
-            List<String> timeStrings = dates
-                    .stream()
-                    .map(d -> msg.timesMap.get(d))
-                    .map(t -> this.timeString(t))
-                    .toList();
-            String timeString = String.join("\n", timeStrings);
-
-            EmbedCreateSpec spec = EmbedCreateSpec.builder()
-                    .addField("Date", dateString, true)
-                    .addField("Time", timeString, true)
-                    .build();
-
-            msgChannel.createMessage(spec).block();
+            return;
         }
+
+        int numRows = Integer.min(msg.numRowsToSend, msg.timesMap.size());
+        List<Pair<String, String>> rowPairs = msg.timesMap
+                .entrySet()
+                .stream()
+                .sorted((e1, e2) -> e2.getKey().compareTo(e1.getKey()))
+                .toList()
+                .subList(0, numRows)
+                .stream()
+                .map(e -> new Pair<String, String>(e.getKey().toString(), this.timeString(e.getValue())))
+                .toList();
+
+        int dateHeaderLength = rowPairs
+                .stream()
+                .map(e -> e.first.length())
+                .max((a, b) -> a - b)
+                .get();
+        int timeHeaderLength = rowPairs
+                .stream()
+                .map(e -> e.second.length())
+                .max((a, b) -> a - b)
+                .get();
+
+        dateHeaderLength = Integer.max(dateHeaderLength + 2, "Date  ".length());
+        timeHeaderLength = Integer.max(timeHeaderLength + 2, "  Time".length());
+
+        String header = String.format("%-" + dateHeaderLength + "s|%" + timeHeaderLength + "s", "Date", "Time");
+        String splitter = new String(new char[dateHeaderLength]).replace('\u0000', '-') +
+                "+" +
+                new String(new char[timeHeaderLength]).replace('\u0000', '-');
+
+        List<String> rows = new ArrayList<>(numRows);
+        for (Pair<String, String> entry : rowPairs) {
+            rows.add(String.format("%-" + dateHeaderLength + "s|" + "%" + timeHeaderLength + "s",
+                    entry.first,
+                    entry.second));
+        }
+
+        List<String> output = new ArrayList<>(rows.size() + 4);
+        output.add(header);
+        output.add(splitter);
+        output.addAll(rows);
+
+        String message = "```" + String.join("\n", output);
+        int extraAmount = msg.timesMap.size() - numRows;
+        if (extraAmount > 0) {
+            message += "\n\n" + String.format("...%s more entries", extraAmount);
+        }
+
+        message += "```";
+        msgChannel.createMessage(message).block();
     }
 
     @Override
@@ -137,7 +170,7 @@ public class DiscordMessageClient implements IMessageClient {
             this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
             return;
         }
-        if(msg.rows.size() == 0) {
+        if (msg.rows.size() == 0) {
             this.logger.error("No data rows to send");
             return;
         }
@@ -158,9 +191,9 @@ public class DiscordMessageClient implements IMessageClient {
                 headers + "\n";
         String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
         resp += splitter + "\n";
-        
+
         List<String> rows = new ArrayList<>();
-        for(var entry: rowData) {
+        for (var entry : rowData) {
             rows.add(String.format("%-" + nameColLength + "s | " + this.timeString(entry.second), entry.first));
         }
 
