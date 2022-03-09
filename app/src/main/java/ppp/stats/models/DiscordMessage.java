@@ -1,7 +1,7 @@
 package ppp.stats.models;
 
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.object.entity.channel.MessageChannel;
 
 public class DiscordMessage implements IMessage {
     private Message message;
@@ -19,7 +19,7 @@ public class DiscordMessage implements IMessage {
     }
 
     public ITextChannel getChannel() {
-        return new DiscordTextChannel((TextChannel)this.message.getChannel().block());
+        return new DiscordTextChannel((MessageChannel)this.message.getChannel().block());
     }
 
     public IUser getAuthor() {

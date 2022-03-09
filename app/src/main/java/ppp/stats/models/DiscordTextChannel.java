@@ -1,21 +1,25 @@
 package ppp.stats.models;
 
+import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.entity.channel.TextChannel;
 
 public class DiscordTextChannel implements ITextChannel {
-    private TextChannel channel;
+    private final MessageChannel channel;
 
-    public DiscordTextChannel(TextChannel channel) {
+    public DiscordTextChannel(MessageChannel channel) {
         this.channel = channel;
     }
 
     @Override
     public String getName() {
-        return this.channel.getName();
+        if(this.channel instanceof TextChannel) {
+            return ((TextChannel)this.channel).getName();
+        }
+        return null;
     }
 
     @Override
     public long getId() {
-        return channel.getId().asLong();
+        return this.channel.getId().asLong();
     }
 }

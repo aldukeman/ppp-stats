@@ -18,7 +18,6 @@ import discord4j.discordjson.json.UserGuildData;
 import ppp.stats.action.IAction;
 import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
-import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.messenger.DiscordMessageClient;
 import ppp.stats.messenger.IMessageClient;
 import ppp.stats.models.DiscordMessage;
@@ -66,7 +65,7 @@ public class DiscordPPPBot implements IBot {
             }
         }
 
-        for (ITask task: this.tasks) {
+        for (ITask task : this.tasks) {
             this.scheduleNextExecution(task);
         }
     }
@@ -89,13 +88,15 @@ public class DiscordPPPBot implements IBot {
     public void startListening() {
         this.gateway.getEventDispatcher().on(MessageCreateEvent.class)
                 .map(MessageCreateEvent::getMessage)
-                .filter(message -> message.getChannel().block() instanceof TextChannel)
                 .filter(message -> {
                     if (this.channelFilter == null) {
                         return true;
                     }
-                    String chanName = ((TextChannel) message.getChannel().block()).getName();
-                    return this.channelFilter.contains(chanName);
+                    if (message.getChannel().block() instanceof TextChannel) {
+                        String chanName = ((TextChannel) message.getChannel().block()).getName();
+                        return this.channelFilter.contains(chanName);
+                    }
+                    return true;
                 })
                 .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
                 .subscribe(message -> {

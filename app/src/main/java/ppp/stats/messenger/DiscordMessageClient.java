@@ -11,7 +11,6 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.spec.EmbedCreateSpec;
 import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.message.AcknowledgeMessage;
 import ppp.stats.messenger.message.BasicMessage;
