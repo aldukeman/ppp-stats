@@ -2,7 +2,9 @@ package ppp.stats.bot;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +24,7 @@ import ppp.stats.messenger.DiscordMessageClient;
 import ppp.stats.messenger.IMessageClient;
 import ppp.stats.models.DiscordMessage;
 import ppp.stats.models.DiscordTextChannel;
+import ppp.stats.models.DiscordGuildChannel;
 import ppp.stats.models.IMessage;
 import ppp.stats.models.ITextChannel;
 import ppp.stats.parser.IParser;
@@ -38,6 +41,7 @@ public class DiscordPPPBot implements IBot {
     final private IChannelDataManager dataManager;
     private ITextChannel channel;
     final private ScheduledExecutorService scheduledService = Executors.newScheduledThreadPool(1);
+    final private Map<Long, DiscordTextChannel> channelMap = new Hashtable<>();
 
     public DiscordPPPBot(String token, List<IParser> parsers, List<ITask> tasks, List<String> channelFilter,
             IChannelDataManager dataManager, ILogger logger) {
@@ -59,7 +63,7 @@ public class DiscordPPPBot implements IBot {
                     .block();
             for (ChannelData channel : channels) {
                 if (channel.name() != null && this.channelFilter.contains(channel.name().get())) {
-                    this.channel = new DiscordTextChannel(
+                    this.channel = new DiscordGuildChannel(
                             (TextChannel) this.gateway.getChannelById(Snowflake.of(channel.id())).block());
                 }
             }
@@ -109,15 +113,26 @@ public class DiscordPPPBot implements IBot {
     private boolean processMessage(Message msg) {
         this.logger.trace("Received message: " + msg.getContent());
 
-        IMessage message = new DiscordMessage(msg);
+        IMessage message = new DiscordMessage(msg, this.channelForId(msg.getChannelId().asLong()));
         for (IParser parser : this.parsers) {
-            IAction action = parser.parse(message);
-            if (action != null) {
-                action.process(message, this.dataManager)
-                        .send(this.msgClient, message.getChannel());
-                return true;
+            if (parser.supportedChannelTypes().contains(message.getChannel().getType())) {
+                IAction action = parser.parse(message);
+                if (action != null) {
+                    action.process(message, this.dataManager)
+                            .send(this.msgClient, message.getChannel());
+                    return true;
+                }
             }
         }
         return false;
+    }
+
+    private DiscordTextChannel channelForId(long id) {
+        DiscordTextChannel ret = this.channelMap.get(Long.valueOf(id));
+        if (ret == null) {
+            ret = DiscordTextChannel.from(this.gateway.getChannelById(Snowflake.of(id)).block());
+            this.channelMap.put(Long.valueOf(id), ret);
+        }
+        return ret;
     }
 }

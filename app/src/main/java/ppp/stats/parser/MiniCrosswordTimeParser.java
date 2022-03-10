@@ -1,11 +1,13 @@
 package ppp.stats.parser;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ppp.stats.action.IAction;
 import ppp.stats.action.ProcessMiniTimeAction;
 import ppp.stats.models.IMessage;
+import ppp.stats.models.ITextChannel.Type;
 
 public class MiniCrosswordTimeParser implements IParser {
     private static Pattern miniTimeReport = Pattern.compile("[0-9]?[0-9]:[0-5][0-9] mini");
@@ -34,5 +36,10 @@ public class MiniCrosswordTimeParser implements IParser {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public List<Type> supportedChannelTypes() {
+        return List.of(Type.CHANNEL);
     }
 }
