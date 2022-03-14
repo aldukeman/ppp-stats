@@ -25,5 +25,4 @@ public class MessageMock implements IMessage {
     public IUser getAuthor() {
         return this.author;
     }
-    
 }

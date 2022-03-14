@@ -13,5 +13,4 @@ public class UserMock implements IUser {
     public String getUsername() {
         return this.username;
     }
-    
 }
