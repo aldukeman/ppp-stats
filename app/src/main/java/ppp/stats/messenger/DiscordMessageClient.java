@@ -175,6 +175,7 @@ public class DiscordMessageClient implements IMessageClient {
         }
 
         List<Pair<String, Integer>> rowData = msg.rows;
+        String winnersStr = this.makeWinnersString(rowData);
 
         int nameColLength = rowData.stream()
                 .map(e -> e.first.length())
@@ -185,7 +186,7 @@ public class DiscordMessageClient implements IMessageClient {
 
         String headers = String.format("%-" + nameColLength + "s | Time", "Name");
         String resp = "**Mini crossword results for " + msg.date + "**\n" +
-                "Congratulations " + rowData.get(0).first + " for getting the top score!\n" +
+                "Congratulations " + winnersStr + " for getting the top score!\n" +
                 "```\n" +
                 headers + "\n";
         String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
@@ -200,6 +201,34 @@ public class DiscordMessageClient implements IMessageClient {
         resp += "```";
 
         msgChannel.createMessage(resp).block();
+    }
+
+    public String makeWinnersString(List<Pair<String, Integer>> rows) {
+        final int max = rows.get(0).second.intValue();
+        List<String> winners = new ArrayList<>();
+        winners.add(rows.get(0).first);
+        for(int i = 1; i < rows.size(); ++i) {
+            Pair<String, Integer> next = rows.get(i);
+            if(max == next.second.intValue()) {
+                winners.add(next.first);
+            } else {
+                break;
+            }
+        }
+
+        String winnersString;
+        if(winners.size() > 1) {
+            winners.set(winners.size() - 1, "and " + winners.get(winners.size() - 1));
+            if(winners.size() > 2) {
+                winnersString = String.join(", ", winners);
+            } else {
+                winnersString = winners.get(0) + " " + winners.get(1);
+            }
+        } else {
+            winnersString = winners.get(0);
+        }
+
+        return winnersString;
     }
 
     @Override
