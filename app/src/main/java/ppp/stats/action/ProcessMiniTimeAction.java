@@ -3,8 +3,8 @@ package ppp.stats.action;
 import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
-import ppp.stats.messenger.message.AcknowledgeMessage;
 import ppp.stats.messenger.message.IBotMessage;
+import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.models.IMessage;
 import ppp.stats.models.IUser;
 
@@ -27,7 +27,7 @@ public class ProcessMiniTimeAction implements IAction {
     public IBotMessage process(IMessage message, IChannelDataManager dataManager) {
         this.logger.trace("Adding mini time for user " + user.getId());
         dataManager.setUserName(user.getId(), user.getUsername());
-        dataManager.addUserTime(user.getId(), IChannelDataManager.MiniDate(), this.time.intValue());
-        return new AcknowledgeMessage(message);
+        dataManager.addUserTime(user.getId(), IChannelDataManager.MiniDate(), this.time.intValue(), message.getId());
+        return new ReactToMessage(message.getId(), "🤖");
     }
 }

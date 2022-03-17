@@ -3,7 +3,6 @@ package ppp.stats.messenger;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -12,12 +11,11 @@ import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import ppp.stats.logging.ILogger;
-import ppp.stats.messenger.message.AcknowledgeMessage;
 import ppp.stats.messenger.message.BasicMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
+import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.messenger.message.UserMiniStatsMessage;
 import ppp.stats.messenger.message.UserMiniTimesMessage;
-import ppp.stats.models.IMessage;
 import ppp.stats.models.ITextChannel;
 import ppp.stats.models.IUser;
 import ppp.stats.utility.Pair;
@@ -40,8 +38,8 @@ public class DiscordMessageClient implements IMessageClient {
         return (MessageChannel) chan;
     }
 
-    private Message message(ITextChannel textChannel, IMessage message) {
-        return this.client.getMessageById(Snowflake.of(textChannel.getId()), Snowflake.of(message.getId())).block();
+    private Message message(ITextChannel textChannel, long messageId) {
+        return this.client.getMessageById(Snowflake.of(textChannel.getId()), Snowflake.of(messageId)).block();
     }
 
     @Override
@@ -75,7 +73,7 @@ public class DiscordMessageClient implements IMessageClient {
                 .toList()
                 .subList(0, numRows)
                 .stream()
-                .map(e -> new Pair<String, String>(e.getKey().toString(), this.timeString(e.getValue())))
+                .map(e -> new Pair<String, String>(e.getKey().toString(), this.timeString(e.getValue().getTime())))
                 .toList();
 
         int dateHeaderLength = rowPairs
@@ -128,7 +126,7 @@ public class DiscordMessageClient implements IMessageClient {
         }
 
         IUser requestor = msg.requestor;
-        Map<LocalDate, Integer> timesMap = msg.timesMap;
+        var timesMap = msg.timesMap;
 
         int numEntries = timesMap.size();
         if (numEntries < 1) {
@@ -139,7 +137,7 @@ public class DiscordMessageClient implements IMessageClient {
         LocalDate earliest = timesMap.keySet().stream().min((d_1, d_2) -> d_1.compareTo(d_2)).get();
         LocalDate latest = timesMap.keySet().stream().min((d_1, d_2) -> d_2.compareTo(d_1)).get();
 
-        List<Integer> times = timesMap.values().stream().sorted().toList();
+        List<Integer> times = timesMap.values().stream().map(e -> e.getTime()).sorted().toList();
         int min = times.get(0).intValue();
         float median;
         if (times.size() % 2 == 0) {
@@ -207,9 +205,9 @@ public class DiscordMessageClient implements IMessageClient {
         final int max = rows.get(0).second.intValue();
         List<String> winners = new ArrayList<>();
         winners.add(rows.get(0).first);
-        for(int i = 1; i < rows.size(); ++i) {
+        for (int i = 1; i < rows.size(); ++i) {
             Pair<String, Integer> next = rows.get(i);
-            if(max == next.second.intValue()) {
+            if (max == next.second.intValue()) {
                 winners.add(next.first);
             } else {
                 break;
@@ -217,9 +215,9 @@ public class DiscordMessageClient implements IMessageClient {
         }
 
         String winnersString;
-        if(winners.size() > 1) {
+        if (winners.size() > 1) {
             winners.set(winners.size() - 1, "and " + winners.get(winners.size() - 1));
-            if(winners.size() > 2) {
+            if (winners.size() > 2) {
                 winnersString = String.join(", ", winners);
             } else {
                 winnersString = winners.get(0) + " " + winners.get(1);
@@ -232,12 +230,12 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     @Override
-    public void sendMessageAcknowledgement(ITextChannel channel, AcknowledgeMessage msg) {
-        Message message = this.message(channel, msg.message);
+    public void sendMessageReaction(ITextChannel channel, ReactToMessage msg) {
+        Message message = this.message(channel, msg.msgId);
         if (message == null) {
             return;
         }
 
-        message.addReaction(ReactionEmoji.unicode("🤖")).block();
+        message.addReaction(ReactionEmoji.unicode(msg.reaction)).block();
     }
 }

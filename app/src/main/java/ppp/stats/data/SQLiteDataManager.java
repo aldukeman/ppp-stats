@@ -7,12 +7,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import ppp.stats.data.model.MiniTimeMessageModel;
 import ppp.stats.data.model.UserModel;
 import ppp.stats.logging.ILogger;
+import ppp.stats.utility.Pair;
 
 public class SQLiteDataManager implements IChannelDataManager {
     final private String filename;
@@ -33,17 +37,36 @@ public class SQLiteDataManager implements IChannelDataManager {
         try {
             ResultSet tablesSet = this.connection.createStatement().executeQuery(this.checkForTablesString());
             List<String> tables = new ArrayList<>();
-            while(tablesSet.next()) {
+            while (tablesSet.next()) {
                 tables.add(tablesSet.getString("name"));
             }
 
-            Map<String, String> tableCreationMap = Map.ofEntries(
-                Map.entry(USER_TABLE_NAME, this.createUserTableAndIndicesString()),
-                Map.entry(MINI_TABLE_NAME, this.createMiniTableAndIndicesString())
-            );
-            for(var entry: tableCreationMap.entrySet()) {
-                if(!tables.contains(entry.getKey())) {
-                    this.connection.createStatement().executeUpdate(entry.getValue());
+            Map<String, Pair<String, Map<String, String>>> tableCreationMap = Map.ofEntries(
+                    Map.entry(USER_TABLE_NAME,
+                            Pair.of(this.createUserTableAndIndicesString(), USER_TABLE_COLS)),
+                    Map.entry(MINI_TABLE_NAME,
+                            Pair.of(this.createMiniTableAndIndicesString(), MINI_TABLE_COLS)));
+            for (var entry : tableCreationMap.entrySet()) {
+                if (tables.contains(entry.getKey())) {
+                    String colNamesStmt = this.columnNamesString(entry.getKey());
+                    ResultSet columns = this.connection.createStatement().executeQuery(colNamesStmt);
+                    Set<String> colNames = new HashSet<>();
+                    while (columns.next()) {
+                        colNames.add(columns.getString("name"));
+                    }
+
+                    List<String> alterStatements = entry.getValue().second
+                            .entrySet()
+                            .stream()
+                            .filter(e -> !colNames.contains(e.getKey()))
+                            .peek(e -> this.logger.debug(entry.getKey() + " is missing column: " + e.getKey()))
+                            .map(e -> this.addColumnToTableString(entry.getKey(), e.getKey(), e.getValue()))
+                            .toList();
+                    for (String statement : alterStatements) {
+                        this.connection.createStatement().executeUpdate(statement);
+                    }
+                } else {
+                    this.connection.createStatement().executeUpdate(entry.getValue().first);
                     this.logger.debug("Creating " + entry.getKey() + " table");
                 }
             }
@@ -56,15 +79,31 @@ public class SQLiteDataManager implements IChannelDataManager {
         return "SELECT name FROM sqlite_master WHERE type='table';";
     }
 
+    private String columnNamesString(String tableName) {
+        return "PRAGMA table_info(" + tableName + ")";
+    }
+
+    private String addColumnToTableString(String tableName, String columnName, String dataType) {
+        return "ALTER TABLE " + tableName + " ADD " + columnName + " " + dataType + ";";
+    }
+
     final static private String USER_TABLE_NAME = "User";
     final static private String USER_ID_NAME = "Id";
     final static private String USER_NAME_NAME = "Name";
 
+    final static private Map<String, String> USER_TABLE_COLS = Map.of(
+            USER_ID_NAME, "UNSIGNED BIGINT PRIMARY KEY",
+            USER_NAME_NAME, "VARCHAR(200)");
+
+    private String columnString(Map<String, String> colsNameTypeMap) {
+        List<String> colsStrings = colsNameTypeMap.entrySet().stream()
+                .map(e -> e.getKey() + " " + e.getValue())
+                .toList();
+        return String.join(", ", colsStrings);
+    }
+
     private String createUserTableAndIndicesString() {
-        String createTable = "CREATE TABLE " + USER_TABLE_NAME + "(" +
-                USER_ID_NAME + " UNSIGNED BIGINT PRIMARY KEY, " +
-                USER_NAME_NAME + " VARCHAR(200));";
-        return createTable;
+        return "CREATE TABLE " + USER_TABLE_NAME + "(" + this.columnString(USER_TABLE_COLS) + ")";
     }
 
     private PreparedStatement insertUserNameStatement(long id, String name) {
@@ -133,91 +172,101 @@ public class SQLiteDataManager implements IChannelDataManager {
     final static private String MINI_USER_ID_NAME = "UserId";
     final static private String MINI_DATE_NAME = "Date";
     final static private String MINI_TIME_NAME = "Time";
+    final static private String MINI_TIME_MESSAGE_ID_NAME = "MessageId";
+
+    final static private Map<String, String> MINI_TABLE_COLS = Map.of(
+            MINI_USER_ID_NAME, "UNSIGNED BIGINT",
+            MINI_DATE_NAME, "CHAR(10)", // SQLite doesn't do DATE, so instead we store as string
+            MINI_TIME_NAME, "UNSIGNED SMALLINT",
+            MINI_TIME_MESSAGE_ID_NAME, "UNSIGNED BIGINT");
 
     private String createMiniTableAndIndicesString() {
-        String createTable = "CREATE TABLE " + MINI_TABLE_NAME + "(" +
-                MINI_USER_ID_NAME + " UNSIGNED BIGINT, " +
-                MINI_DATE_NAME + " CHAR(10), " + // SQLite doesn't do DATE, so instead we store the string
-                                                 // representation
-                MINI_TIME_NAME + " UNSIGNED SMALLINT, " +
-                "FOREIGN KEY (" + MINI_USER_ID_NAME + ") REFERENCES " + USER_TABLE_NAME + "(" + USER_ID_NAME + ")," +
+        return "CREATE TABLE " + MINI_TABLE_NAME + "(" +
+                this.columnString(MINI_TABLE_COLS) + "," +
+                "FOREIGN KEY(" + MINI_USER_ID_NAME + ") REFERENCES " + USER_TABLE_NAME + "(" + USER_ID_NAME + ")," +
                 "PRIMARY KEY(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + "));";
-        return createTable;
     }
 
     @Override
-    public void addUserTime(long id, LocalDate date, int seconds) {
+    public void addUserTime(long userId, LocalDate date, int seconds, long messageId) {
         try {
-            if (this.connection.createStatement().executeUpdate(this.updateMiniTimeStatement(id, date, seconds)) == 0) {
-                this.connection.createStatement().executeUpdate(this.insertMiniTimeStatement(id, date, seconds));
+            if (this.connection.createStatement()
+                    .executeUpdate(this.updateMiniTimeStatement(userId, date, seconds, messageId)) == 0) {
+                this.connection.createStatement()
+                        .executeUpdate(this.insertMiniTimeStatement(userId, date, seconds, messageId));
             }
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
         }
     }
 
-    private String insertMiniTimeStatement(long id, LocalDate date, int seconds) {
+    private String insertMiniTimeStatement(long id, LocalDate date, int seconds, long messageId) {
         return "INSERT INTO " + MINI_TABLE_NAME + "(" + MINI_USER_ID_NAME + ", " + MINI_DATE_NAME + ", "
-                + MINI_TIME_NAME + ") " +
-                "VALUES (" + id + ", \"" + date + "\", " + seconds + ");";
+                + MINI_TIME_NAME + ", " + MINI_TIME_MESSAGE_ID_NAME + ") " +
+                "VALUES (" + id + ", \"" + date + "\", " + seconds + ", " + messageId + ");";
     }
 
-    private String updateMiniTimeStatement(long id, LocalDate date, int seconds) {
+    private String updateMiniTimeStatement(long id, LocalDate date, int seconds, long messageId) {
         return "UPDATE " + MINI_TABLE_NAME + " " +
-                "SET " + MINI_TIME_NAME + "=" + seconds + " " +
+                "SET " + MINI_TIME_NAME + "=" + seconds + ", " + MINI_TIME_MESSAGE_ID_NAME + "=" + messageId + " " +
                 "WHERE " + MINI_USER_ID_NAME + "=" + id + " AND " + MINI_DATE_NAME + "=\"" + date + "\";";
     }
 
     @Override
-    public Map<LocalDate, Integer> getTimesForUserId(long id) {
+    public Map<LocalDate, MiniTimeMessageModel> getTimesForUserId(long userId) {
+        Hashtable<LocalDate, MiniTimeMessageModel> dict = new Hashtable<>();
+
         try {
             ResultSet resultSet = this.connection.createStatement()
-                    .executeQuery(this.selectAllTimesForUserStatement(id));
+                    .executeQuery(this.selectAllTimesForUserStatement(userId));
 
-            Hashtable<LocalDate, Integer> dict = new Hashtable<>();
             while (resultSet.next()) {
-                Integer time = Integer.valueOf(resultSet.getInt(MINI_TIME_NAME));
+                Long messageId = null;
+                try {
+                    messageId = Long.valueOf(resultSet.getLong(MINI_TIME_MESSAGE_ID_NAME));
+                } catch (SQLException e) {
+                    // this is fine
+                }
+                int time = resultSet.getInt(MINI_TIME_NAME);
                 LocalDate date = LocalDate.parse(resultSet.getString(MINI_DATE_NAME));
-                dict.put(date, time);
+                dict.put(date, new MiniTimeMessageModel(messageId, time, userId));
             }
-
-            return dict;
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
         }
 
-        return null;
+        return dict;
     }
 
-    private String selectAllTimesForUserStatement(long id) {
-        return "SELECT " + MINI_DATE_NAME + ", " + MINI_TIME_NAME + " " +
+    private String selectAllTimesForUserStatement(long userId) {
+        return "SELECT * " +
                 "FROM " + MINI_TABLE_NAME + " " +
-                "WHERE " + MINI_USER_ID_NAME + "=" + id + ";";
+                "WHERE " + MINI_USER_ID_NAME + "=" + userId + ";";
     }
 
     @Override
-    public Map<Long, Integer> getTimesForDate(LocalDate date) {
+    public Map<Long, MiniTimeMessageModel> getTimesForDate(LocalDate date) {
+        Hashtable<Long, MiniTimeMessageModel> results = new Hashtable<>();
+
         try {
             ResultSet resultSet = this.connection.createStatement()
                     .executeQuery(this.selectAllTimesForDateStatement(date));
 
-            Hashtable<Long, Integer> results = new Hashtable<>();
             while (resultSet.next()) {
-                Long id = Long.valueOf(resultSet.getLong(MINI_USER_ID_NAME));
+                long userId = resultSet.getLong(MINI_USER_ID_NAME);
                 Integer time = Integer.valueOf(resultSet.getInt(MINI_TIME_NAME));
-                results.put(id, time);
+                long messageId = resultSet.getLong(MINI_TIME_MESSAGE_ID_NAME);
+                results.put(userId, new MiniTimeMessageModel(messageId, time, userId));
             }
-
-            return results;
         } catch (SQLException e) {
             this.logger.error(e.getMessage());
         }
 
-        return null;
+        return results;
     }
 
     private String selectAllTimesForDateStatement(LocalDate date) {
-        return "SELECT " + MINI_USER_ID_NAME + ", " + MINI_TIME_NAME + " " +
+        return "SELECT * " +
                 "FROM " + MINI_TABLE_NAME + " " +
                 "WHERE " + MINI_DATE_NAME + "=\"" + date + "\";";
     }

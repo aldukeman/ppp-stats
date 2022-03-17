@@ -4,10 +4,11 @@ import java.time.LocalDate;
 import java.util.Hashtable;
 import java.util.Map;
 
+import ppp.stats.data.model.MiniTimeMessageModel;
 import ppp.stats.data.model.UserModel;
 
 public class InMemoryDataManager implements IChannelDataManager {
-    private Hashtable<Long, Hashtable<LocalDate, Integer>> userTimes;
+    private Hashtable<Long, Hashtable<LocalDate, MiniTimeMessageModel>> userTimes;
     private Hashtable<Long, String> userNames;
 
     public InMemoryDataManager() {
@@ -30,29 +31,32 @@ public class InMemoryDataManager implements IChannelDataManager {
     }
 
     @Override
-    public void addUserTime(long id, LocalDate date, int seconds) {
-        Hashtable<LocalDate, Integer> dict = this.userTimes.get(Long.valueOf(id));
+    public void addUserTime(long userId, LocalDate date, int seconds, long messageId) {
+        Hashtable<LocalDate, MiniTimeMessageModel> dict = this.userTimes.get(Long.valueOf(userId));
+        MiniTimeMessageModel model = new MiniTimeMessageModel(messageId, seconds, userId);
         if(dict != null) {
-            dict.put(date, seconds);
+            dict.put(date, model);
         } else {
-            dict = new Hashtable<LocalDate, Integer>();
-            dict.put(date, seconds);
-            this.userTimes.put(Long.valueOf(id), dict);
+            dict = new Hashtable<LocalDate, MiniTimeMessageModel>();
+            dict.put(date, model);
+            this.userTimes.put(Long.valueOf(userId), dict);
         }
     }
 
     @Override
-    public Map<LocalDate, Integer> getTimesForUserId(long id) {
+    public Map<LocalDate, MiniTimeMessageModel> getTimesForUserId(long id) {
         return this.userTimes.get(Long.valueOf(id));
     }
 
     @Override
-    public Map<Long, Integer> getTimesForDate(LocalDate date) {
-        Hashtable<Long, Integer> results = new Hashtable<>();
+    public Map<Long, MiniTimeMessageModel> getTimesForDate(LocalDate date) {
+        Hashtable<Long, MiniTimeMessageModel> results = new Hashtable<>();
         for(var entry: this.userTimes.entrySet()) {
             Long id = entry.getKey();
-            Integer time = entry.getValue().get(date);
-            results.put(id, time);
+            MiniTimeMessageModel model = entry.getValue().get(date);
+            if(model != null) {
+                results.put(id, model);
+            }
         }
         return results;
     }
