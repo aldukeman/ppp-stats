@@ -6,8 +6,7 @@ import ppp.stats.data.IChannelDataManager;
 import ppp.stats.data.InMemoryDataManager;
 import ppp.stats.data.model.UserModel;
 import ppp.stats.logging.NoOpLogger;
-import ppp.stats.messenger.message.AcknowledgeMessage;
-import ppp.stats.messenger.message.IBotMessage;
+import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.models.MessageMock;
 import ppp.stats.models.UserMock;
 
@@ -26,12 +25,12 @@ public class ProcessMiniTimeActionTest {
 
         IChannelDataManager dm = new InMemoryDataManager();
         ProcessMiniTimeAction action = new ProcessMiniTimeAction(user, 7, new NoOpLogger());
-        IBotMessage botMsg = action.process(msg, dm);
-        assert(botMsg instanceof AcknowledgeMessage);
+        ReactToMessage botMsg = (ReactToMessage)action.process(msg, dm);
+        assertEquals("🤖", botMsg.reaction);
 
-        Map<LocalDate, Integer> dict = dm.getTimesForUserId(user.getId());
+        var dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 1);
-        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(7));
+        assertEquals(dict.get(IChannelDataManager.MiniDate()).getTime(), 7);
 
         Map<Long, UserModel> users = dm.getUserModels();
         assertEquals(users.size(), 1);
@@ -42,12 +41,12 @@ public class ProcessMiniTimeActionTest {
         user.id = 2;
         user.username = "Bob";
         action = new ProcessMiniTimeAction(user, 8, new NoOpLogger());
-        botMsg = action.process(msg, dm);
-        assert(botMsg instanceof AcknowledgeMessage);
+        botMsg = (ReactToMessage)action.process(msg, dm);
+        assertEquals("🤖", botMsg.reaction);
 
         dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 1);
-        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(8));
+        assertEquals(dict.get(IChannelDataManager.MiniDate()).getTime(), 8);
 
         users = dm.getUserModels();
         assertEquals(users.size(), 2);
@@ -69,14 +68,15 @@ public class ProcessMiniTimeActionTest {
         IChannelDataManager dm = new InMemoryDataManager();
         dm.setUserName(1, "Alice");
         LocalDate yesterday = IChannelDataManager.MiniDate().plusDays(-1);
-        dm.addUserTime(1, yesterday, 7);
+        dm.addUserTime(1, yesterday, 7, 1);
         ProcessMiniTimeAction action = new ProcessMiniTimeAction(user, 8, new NoOpLogger());
-        IBotMessage botMsg = action.process(msg, dm);
-        assert(botMsg instanceof AcknowledgeMessage);
+        ReactToMessage botMsg = (ReactToMessage)action.process(msg, dm);
+        assertEquals("🤖", botMsg.reaction);
 
-        Map<LocalDate, Integer> dict = dm.getTimesForUserId(user.getId());
+
+        var dict = dm.getTimesForUserId(user.getId());
         assertEquals(dict.size(), 2);
-        assertEquals(dict.get(yesterday), Integer.valueOf(7));
-        assertEquals(dict.get(IChannelDataManager.MiniDate()), Integer.valueOf(8));
+        assertEquals(dict.get(yesterday).getTime(), 7);
+        assertEquals(dict.get(IChannelDataManager.MiniDate()).getTime(), 8);
     }
 }

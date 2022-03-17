@@ -1,6 +1,6 @@
 package ppp.stats.messenger;
 
-import ppp.stats.messenger.message.AcknowledgeMessage;
+import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.messenger.message.BasicMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.messenger.message.UserMiniStatsMessage;
@@ -12,7 +12,7 @@ public interface IMessageClient {
     public void sendUserMiniTimes(ITextChannel channel, UserMiniTimesMessage msg);
     public void sendUserMiniStats(ITextChannel channel, UserMiniStatsMessage msg);
     public void sendMiniResultsForDate(ITextChannel channel, MiniResultsForDateMessage msg);
-    public void sendMessageAcknowledgement(ITextChannel channel, AcknowledgeMessage msg);
+    public void sendMessageReaction(ITextChannel channel, ReactToMessage msg);
 
     default String timeString(Integer time) {
         int seconds = time.intValue();

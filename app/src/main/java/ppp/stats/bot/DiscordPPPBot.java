@@ -22,6 +22,7 @@ import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.DiscordMessageClient;
 import ppp.stats.messenger.IMessageClient;
+import ppp.stats.messenger.message.IBotMessage;
 import ppp.stats.models.DiscordMessage;
 import ppp.stats.models.DiscordTextChannel;
 import ppp.stats.models.DiscordGuildChannel;
@@ -81,7 +82,10 @@ public class DiscordPPPBot implements IBot {
         DiscordPPPBot bot = this;
         this.scheduledService.schedule(new Runnable() {
             public void run() {
-                task.execute(bot.dataManager).send(bot.msgClient, bot.channel);
+                List<IBotMessage> messages = task.execute(bot.dataManager);
+                for (IBotMessage msg : messages) {
+                    msg.send(bot.msgClient, bot.channel);
+                }
                 bot.scheduleNextExecution(task);
             }
         }, delayInNanos, TimeUnit.NANOSECONDS);

@@ -16,46 +16,49 @@ public abstract class IDataManagerTest extends TestCase {
     public void testSetUserName() {
         this.testDataManager.setUserName(1, "Alice");
         Map<Long, UserModel> users = this.testDataManager.getUserModels();
-        assertEquals(users.size(), 1);
+        assertEquals(1, users.size());
         UserModel user = users.get(Long.valueOf(1));
-        assertEquals(user.getId(), 1);
-        assertEquals(user.getName(), "Alice");
+        assertEquals(1, user.getId());
+        assertEquals("Alice", user.getName());
 
         this.testDataManager.setUserName(1, "Bob");
         users = this.testDataManager.getUserModels();
-        assertEquals(users.size(), 1);
+        assertEquals(1, users.size());
         user = users.get(Long.valueOf(1));
-        assertEquals(user.getId(), 1);
-        assertEquals(user.getName(), "Bob");
+        assertEquals(1, user.getId());
+        assertEquals("Bob", user.getName());
 
         this.testDataManager.setUserName(2, "Charlie");
         users = this.testDataManager.getUserModels();
-        assertEquals(users.size(), 2);
+        assertEquals(2, users.size());
         user = users.get(Long.valueOf(1));
-        assertEquals(user.getId(), 1);
-        assertEquals(user.getName(), "Bob");
+        assertEquals(1, user.getId());
+        assertEquals("Bob", user.getName());
         user = users.get(Long.valueOf(2));
-        assertEquals(user.getId(), 2);
-        assertEquals(user.getName(), "Charlie");
+        assertEquals(2, user.getId());
+        assertEquals("Charlie", user.getName());
     }
 
     @Test
     public void testAddUserTime() {
-        long id = 1;
-        this.testDataManager.setUserName(id, "Alice");
+        long userId = 1;
+        this.testDataManager.setUserName(userId, "Alice");
 
         LocalDate today = IChannelDataManager.MiniDate();
-        this.testDataManager.addUserTime(id, 7);
-        Map<LocalDate, Integer> times = this.testDataManager.getTimesForUserId(id);
-        assertEquals(times.size(), 1);
-        assertEquals(times.get(today), Integer.valueOf(7));
+        this.testDataManager.addUserTime(userId, 7, 0);
+        var times = this.testDataManager.getTimesForUserId(userId);
+        assertEquals(1, times.size());
+        assertEquals(7, times.get(today).getTime());
+        assertEquals(0, times.get(today).getMessageId().longValue());
 
         LocalDate tomorrow = today.plusDays(1);
-        this.testDataManager.addUserTime(id, tomorrow, 8);
-        times = this.testDataManager.getTimesForUserId(id);
-        assertEquals(times.size(), 2);
-        assertEquals(times.get(today), Integer.valueOf(7));
-        assertEquals(times.get(tomorrow), Integer.valueOf(8));
+        this.testDataManager.addUserTime(userId, tomorrow, 8, 1);
+        times = this.testDataManager.getTimesForUserId(userId);
+        assertEquals(2, times.size());
+        assertEquals(7, times.get(today).getTime());
+        assertEquals(0, times.get(today).getMessageId().longValue());
+        assertEquals(8, times.get(tomorrow).getTime());
+        assertEquals(1, times.get(tomorrow).getMessageId().longValue());
     }
 
     @Test
@@ -64,19 +67,23 @@ public abstract class IDataManagerTest extends TestCase {
         this.testDataManager.setUserName(2, "Bob");
 
         LocalDate today = IChannelDataManager.MiniDate();
-        this.testDataManager.addUserTime(1, 7);
-        this.testDataManager.addUserTime(2, 8);
-        Map<Long, Integer> results = this.testDataManager.getTimesForDate(today);
-        assertEquals(results.size(), 2);
-        assertEquals(results.get(Long.valueOf(1)), Integer.valueOf(7));
-        assertEquals(results.get(Long.valueOf(2)), Integer.valueOf(8));
+        this.testDataManager.addUserTime(1, 7, 1);
+        this.testDataManager.addUserTime(2, 8, 2);
+        var results = this.testDataManager.getTimesForDate(today);
+        assertEquals(2, results.size());
+        assertEquals(7, results.get(Long.valueOf(1)).getTime());
+        assertEquals(1, results.get(Long.valueOf(1)).getMessageId().longValue());
+        assertEquals(8, results.get(Long.valueOf(2)).getTime());
+        assertEquals(2, results.get(Long.valueOf(2)).getMessageId().longValue());
 
         LocalDate tomorrow = today.plusDays(1);
-        this.testDataManager.addUserTime(1, tomorrow, 9);
-        this.testDataManager.addUserTime(2, tomorrow, 10);
+        this.testDataManager.addUserTime(1, tomorrow, 9, 3);
+        this.testDataManager.addUserTime(2, tomorrow, 10, 4);
         results = this.testDataManager.getTimesForDate(tomorrow);
-        assertEquals(results.size(), 2);
-        assertEquals(results.get(Long.valueOf(1)), Integer.valueOf(9));
-        assertEquals(results.get(Long.valueOf(2)), Integer.valueOf(10));
+        assertEquals(2, results.size());
+        assertEquals(9, results.get(Long.valueOf(1)).getTime());
+        assertEquals(3, results.get(Long.valueOf(1)).getMessageId().longValue());
+        assertEquals(10, results.get(Long.valueOf(2)).getTime());
+        assertEquals(4, results.get(Long.valueOf(2)).getMessageId().longValue());
     }
 }

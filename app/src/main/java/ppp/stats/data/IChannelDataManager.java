@@ -7,14 +7,15 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
 
+import ppp.stats.data.model.MiniTimeMessageModel;
 import ppp.stats.data.model.UserModel;
 
 public interface IChannelDataManager {
-    void setUserName(long id, String name);
+    void setUserName(long userId, String name);
     Map<Long, UserModel> getUserModels();
-    void addUserTime(long id, LocalDate date, int seconds);
-    Map<LocalDate, Integer> getTimesForUserId(long id);
-    Map<Long, Integer> getTimesForDate(LocalDate date);
+    void addUserTime(long userId, LocalDate date, int seconds, long messageId);
+    Map<LocalDate, MiniTimeMessageModel> getTimesForUserId(long userId);
+    Map<Long, MiniTimeMessageModel> getTimesForDate(LocalDate date);
 
     static LocalDate MiniDate() {
         ZoneId nyt = ZoneId.of("America/New_York");
@@ -27,7 +28,7 @@ public interface IChannelDataManager {
         }
     }
 
-    default void addUserTime(long id, int seconds) {
-        this.addUserTime(id, IChannelDataManager.MiniDate(), seconds);
+    default void addUserTime(long userId, int seconds, long messageId) {
+        this.addUserTime(userId, IChannelDataManager.MiniDate(), seconds, messageId);
     }
 }

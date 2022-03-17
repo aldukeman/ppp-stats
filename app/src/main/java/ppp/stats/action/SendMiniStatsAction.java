@@ -1,8 +1,5 @@
 package ppp.stats.action;
 
-import java.time.LocalDate;
-import java.util.Map;
-
 import ppp.stats.data.IChannelDataManager;
 import ppp.stats.logging.ILogger;
 import ppp.stats.logging.SystemOutLogger;
@@ -19,7 +16,7 @@ public class SendMiniStatsAction implements IAction {
     public IBotMessage process(IMessage message, IChannelDataManager dataManager) {
         IUser requestor = message.getAuthor();
         if (requestor != null) {
-            Map<LocalDate, Integer> dict = dataManager.getTimesForUserId(requestor.getId());
+            var dict = dataManager.getTimesForUserId(requestor.getId());
             return new UserMiniStatsMessage(requestor, dict);
         } else {
             this.logger.debug("Null author");
