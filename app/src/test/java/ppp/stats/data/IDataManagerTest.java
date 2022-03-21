@@ -3,11 +3,14 @@ package ppp.stats.data;
 import org.junit.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import junit.framework.TestCase;
 
 import ppp.stats.data.model.UserModel;
+import ppp.stats.data.model.WordleResultModel;
+import ppp.stats.data.model.WordleResultModel.CellType;
 
 public abstract class IDataManagerTest extends TestCase {
     protected IChannelDataManager testDataManager;
@@ -85,5 +88,38 @@ public abstract class IDataManagerTest extends TestCase {
         assertEquals(3, results.get(Long.valueOf(1)).getMessageId().longValue());
         assertEquals(10, results.get(Long.valueOf(2)).getTime());
         assertEquals(4, results.get(Long.valueOf(2)).getMessageId().longValue());
+    }
+
+    @Test
+    public void testWordleResults() {
+        this.testDataManager.setUserName(1, "Alice");
+        this.testDataManager.setUserName(2, "Bob");
+
+        Map<String, List<List<WordleResultModel.CellType>>> tests = Map.of(
+            "11111 22222 33333",
+            List.of(
+                    List.of(CellType.BAD, CellType.BAD, CellType.BAD, CellType.BAD, CellType.BAD),
+                    List.of(CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.WRONG_SPOT,
+                            CellType.WRONG_SPOT),
+                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD)),
+            "11311 22311 33322 33333",
+            List.of(
+                    List.of(CellType.BAD, CellType.BAD, CellType.GOOD, CellType.BAD, CellType.BAD),
+                    List.of(CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.GOOD, CellType.BAD,
+                            CellType.BAD),
+                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.WRONG_SPOT, CellType.WRONG_SPOT),
+                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD)));
+        
+        for(var test: tests.entrySet()) {
+            WordleResultModel model = WordleResultModel.from(test.getValue(), false);
+            this.testDataManager.addWordleResult(1, IChannelDataManager.WordleDate(), model, 1);
+            
+            var results = this.testDataManager.getWordleResultsForUserId(1);
+            WordleResultModel outModel = results.get(IChannelDataManager.WordleDate());
+
+            assertEquals(outModel.getDbRepresentation(), test.getKey());
+            assertEquals(outModel.getRows(), test.getValue());
+            assertEquals(outModel.isHard(), false);
+        }
     }
 }

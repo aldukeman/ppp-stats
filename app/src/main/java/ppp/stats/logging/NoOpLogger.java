@@ -1,6 +1,8 @@
 package ppp.stats.logging;
 
 public class NoOpLogger implements ILogger {
+    public static final NoOpLogger shared = new NoOpLogger();
+    
     @Override
     public void error(String log) { }
 
