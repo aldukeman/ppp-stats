@@ -14,6 +14,7 @@ import ppp.stats.logging.SystemOutLogger;
 import ppp.stats.parser.CommandParser;
 import ppp.stats.parser.IParser;
 import ppp.stats.parser.MiniCrosswordTimeParser;
+import ppp.stats.parser.WordleResultParser;
 import ppp.stats.parser.command.ICommand;
 import ppp.stats.parser.command.StatsCommand;
 import ppp.stats.parser.command.TimesCommand;
@@ -56,13 +57,15 @@ public class Main {
             return;
         }
 
-        final List<IParser> parsers = new ArrayList<>();
-        parsers.add(new MiniCrosswordTimeParser());
         final HashMap<String, ICommand> commands = new HashMap<>();
         commands.put("times", new TimesCommand());
         commands.put("stats", new StatsCommand());
         final CommandParser commandParser = new CommandParser(commands);
-        parsers.add(commandParser);
+        
+        final List<IParser> parsers = List.of(
+                new MiniCrosswordTimeParser(),
+                new WordleResultParser(logger),
+                commandParser);
 
         final List<ITask> tasks = new ArrayList<>();
         tasks.add(new MiniResultsForDateTask(logger));

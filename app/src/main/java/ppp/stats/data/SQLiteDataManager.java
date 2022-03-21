@@ -15,6 +15,7 @@ import java.util.Set;
 
 import ppp.stats.data.model.MiniTimeMessageModel;
 import ppp.stats.data.model.UserModel;
+import ppp.stats.data.model.WordleResultModel;
 import ppp.stats.logging.ILogger;
 import ppp.stats.utility.Pair;
 
@@ -45,7 +46,9 @@ public class SQLiteDataManager implements IChannelDataManager {
                     Map.entry(USER_TABLE_NAME,
                             Pair.of(this.createUserTableAndIndicesString(), USER_TABLE_COLS)),
                     Map.entry(MINI_TABLE_NAME,
-                            Pair.of(this.createMiniTableAndIndicesString(), MINI_TABLE_COLS)));
+                            Pair.of(this.createMiniTableAndIndicesString(), MINI_TABLE_COLS)),
+                    Map.entry(WORDLE_TABLE_NAME,
+                            Pair.of(this.createWordleTableAndIndicesString(), WORDLE_TABLE_COLS)));
             for (var entry : tableCreationMap.entrySet()) {
                 if (tables.contains(entry.getKey())) {
                     String colNamesStmt = this.columnNamesString(entry.getKey());
@@ -269,5 +272,78 @@ public class SQLiteDataManager implements IChannelDataManager {
         return "SELECT * " +
                 "FROM " + MINI_TABLE_NAME + " " +
                 "WHERE " + MINI_DATE_NAME + "=\"" + date + "\";";
+    }
+
+    final static private String WORDLE_TABLE_NAME = "Wordle";
+    final static private String WORDLE_USER_ID_NAME = "UserId";
+    final static private String WORDLE_DATE_NAME = "Date";
+    final static private String WORDLE_RESULT_NAME = "Result";
+    final static private String WORDLE_IS_HARD_NAME = "IsHard";
+    final static private String WORDLE_MESSAGE_ID_NAME = "MessageId";
+
+    final static private Map<String, String> WORDLE_TABLE_COLS = Map.of(
+            WORDLE_USER_ID_NAME, "UNSIGNED BIGINT",
+            WORDLE_DATE_NAME, "CHAR(10)", // SQLite doesn't do DATE, so instead we store as string
+            WORDLE_RESULT_NAME, "VARCHAR(40)",
+            WORDLE_IS_HARD_NAME, "BOOLEAN",
+            WORDLE_MESSAGE_ID_NAME, "UNSIGNED BIGINT");
+
+    private String createWordleTableAndIndicesString() {
+        return "CREATE TABLE " + WORDLE_TABLE_NAME + "(" +
+                this.columnString(WORDLE_TABLE_COLS) + "," +
+                "FOREIGN KEY(" + WORDLE_USER_ID_NAME + ") REFERENCES " + USER_TABLE_NAME + "(" + USER_ID_NAME + ")," +
+                "PRIMARY KEY(" + WORDLE_USER_ID_NAME + ", " + WORDLE_DATE_NAME + "));";
+    }
+
+    @Override
+    public void addWordleResult(long userId, LocalDate date, WordleResultModel model, long messageId) {
+        try {
+            if (this.connection.createStatement()
+                    .executeUpdate(this.updateWordleResultStatement(userId, date, model.getDbRepresentation(), model.isHard(), messageId)) == 0) {
+                this.connection.createStatement()
+                        .executeUpdate(this.insertWordleResultStatement(userId, date, model.getDbRepresentation(), model.isHard(), messageId));
+            }
+        } catch (SQLException e) {
+            this.logger.error(e.getMessage());
+        }
+    }
+
+    private String insertWordleResultStatement(long id, LocalDate date, String result, boolean isHard, long messageId) {
+        return "INSERT INTO " + WORDLE_TABLE_NAME + "(" + WORDLE_USER_ID_NAME + ", " + WORDLE_DATE_NAME + ", "
+                + WORDLE_RESULT_NAME + ", " + WORDLE_IS_HARD_NAME + ", " + WORDLE_MESSAGE_ID_NAME + ") " +
+                "VALUES (" + id + ", \"" + date + "\", \"" + result + "\", " + isHard + ", " + messageId + ");";
+    }
+
+    private String updateWordleResultStatement(long id, LocalDate date, String result, boolean isHard, long messageId) {
+        return "UPDATE " + WORDLE_TABLE_NAME + " " +
+                "SET " + WORDLE_RESULT_NAME + "=\"" + result + "\", " + WORDLE_IS_HARD_NAME + "=" + isHard + ", " + WORDLE_MESSAGE_ID_NAME + "=" + messageId + " " +
+                "WHERE " + WORDLE_USER_ID_NAME + "=" + id + " AND " + WORDLE_DATE_NAME + "=\"" + date + "\";";
+    }
+
+    @Override
+    public Map<LocalDate, WordleResultModel> getWordleResultsForUserId(long userId) {
+        Hashtable<LocalDate, WordleResultModel> results = new Hashtable<>();
+
+        try {
+            ResultSet resultSet = this.connection.createStatement()
+                    .executeQuery(this.selectUsersWordleResultsStatement(userId));
+
+            while (resultSet.next()) {
+                LocalDate date = LocalDate.parse(resultSet.getString(WORDLE_DATE_NAME));
+                String dbRepresentation = resultSet.getString(WORDLE_RESULT_NAME);
+                boolean isHard = resultSet.getBoolean(WORDLE_IS_HARD_NAME);
+                results.put(date, WordleResultModel.from(dbRepresentation, isHard));
+            }
+        } catch (SQLException e) {
+            this.logger.error(e.getMessage());
+        }
+
+        return results;
+    }
+
+    private String selectUsersWordleResultsStatement(long userId) {
+        return "SELECT * " +
+                "FROM " + WORDLE_TABLE_NAME + " " +
+                "WHERE " + WORDLE_USER_ID_NAME + "=\"" + userId + "\";";
     }
 }

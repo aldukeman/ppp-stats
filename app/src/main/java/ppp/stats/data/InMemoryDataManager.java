@@ -6,14 +6,17 @@ import java.util.Map;
 
 import ppp.stats.data.model.MiniTimeMessageModel;
 import ppp.stats.data.model.UserModel;
+import ppp.stats.data.model.WordleResultModel;
 
 public class InMemoryDataManager implements IChannelDataManager {
-    private Hashtable<Long, Hashtable<LocalDate, MiniTimeMessageModel>> userTimes;
-    private Hashtable<Long, String> userNames;
+    private Hashtable<Long /* userId */, Hashtable<LocalDate, MiniTimeMessageModel>> userTimes;
+    private Hashtable<Long /* userId */, String> userNames;
+    private Hashtable<Long /* userId */, Hashtable<LocalDate, WordleResultModel>> wordleResults;
 
     public InMemoryDataManager() {
         this.userTimes = new Hashtable<>();
         this.userNames = new Hashtable<>();
+        this.wordleResults = new Hashtable<>();
     }
 
     @Override
@@ -37,7 +40,7 @@ public class InMemoryDataManager implements IChannelDataManager {
         if(dict != null) {
             dict.put(date, model);
         } else {
-            dict = new Hashtable<LocalDate, MiniTimeMessageModel>();
+            dict = new Hashtable<>();
             dict.put(date, model);
             this.userTimes.put(Long.valueOf(userId), dict);
         }
@@ -59,5 +62,22 @@ public class InMemoryDataManager implements IChannelDataManager {
             }
         }
         return results;
+    }
+
+    @Override
+    public void addWordleResult(long userId, LocalDate date, WordleResultModel model, long messageId) {
+        var userResults = this.wordleResults.get(Long.valueOf(userId));
+        if(userResults != null) {
+            userResults.put(date, model);
+        } else {
+            userResults = new Hashtable<>();
+            userResults.put(date, model);
+            this.wordleResults.put(Long.valueOf(userId), userResults);
+        }
+    }
+
+    @Override
+    public Map<LocalDate, WordleResultModel> getWordleResultsForUserId(long userId) {
+        return this.wordleResults.get(Long.valueOf(userId));
     }
 }
