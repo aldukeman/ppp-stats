@@ -346,4 +346,32 @@ public class SQLiteDataManager implements IChannelDataManager {
                 "FROM " + WORDLE_TABLE_NAME + " " +
                 "WHERE " + WORDLE_USER_ID_NAME + "=\"" + userId + "\";";
     }
+
+    @Override
+    public Map<Long, WordleResultModel> getWordleResultsForDate(LocalDate date) {
+        Map<Long, WordleResultModel> results = new Hashtable<>();
+
+        try {
+            ResultSet resultSet = this.connection.createStatement()
+                    .executeQuery(this.selectAllWordleResultsForDateStatement(date));
+
+            while (resultSet.next()) {
+                long userId = resultSet.getLong(WORDLE_USER_ID_NAME);
+                WordleResultModel model = WordleResultModel.from(
+                    resultSet.getString(WORDLE_RESULT_NAME),
+                    resultSet.getBoolean(WORDLE_IS_HARD_NAME));
+                results.put(userId, model);
+            }
+        } catch (SQLException e) {
+            this.logger.error(e.getMessage());
+        }
+
+        return results;
+    }
+
+    private String selectAllWordleResultsForDateStatement(LocalDate date) {
+        return "SELECT * " +
+                "FROM " + WORDLE_TABLE_NAME + " " +
+                "WHERE " + WORDLE_DATE_NAME + "=\"" + date + "\";";
+    }
 }

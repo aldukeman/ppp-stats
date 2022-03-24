@@ -10,7 +10,6 @@ import junit.framework.TestCase;
 
 import ppp.stats.data.model.UserModel;
 import ppp.stats.data.model.WordleResultModel;
-import ppp.stats.data.model.WordleResultModel.CellType;
 
 public abstract class IDataManagerTest extends TestCase {
     protected IChannelDataManager testDataManager;
@@ -91,35 +90,64 @@ public abstract class IDataManagerTest extends TestCase {
     }
 
     @Test
-    public void testWordleResults() {
+    public void testWordleResultsForUser() {
         this.testDataManager.setUserName(1, "Alice");
         this.testDataManager.setUserName(2, "Bob");
+        List<String> tests = List.of("11111 22222 33333", "11311 22311 33322 33333");
 
-        Map<String, List<List<WordleResultModel.CellType>>> tests = Map.of(
-            "11111 22222 33333",
-            List.of(
-                    List.of(CellType.BAD, CellType.BAD, CellType.BAD, CellType.BAD, CellType.BAD),
-                    List.of(CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.WRONG_SPOT,
-                            CellType.WRONG_SPOT),
-                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD)),
-            "11311 22311 33322 33333",
-            List.of(
-                    List.of(CellType.BAD, CellType.BAD, CellType.GOOD, CellType.BAD, CellType.BAD),
-                    List.of(CellType.WRONG_SPOT, CellType.WRONG_SPOT, CellType.GOOD, CellType.BAD,
-                            CellType.BAD),
-                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.WRONG_SPOT, CellType.WRONG_SPOT),
-                    List.of(CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD, CellType.GOOD)));
-        
-        for(var test: tests.entrySet()) {
-            WordleResultModel model = WordleResultModel.from(test.getValue(), false);
-            this.testDataManager.addWordleResult(1, IChannelDataManager.WordleDate(), model, 1);
-            
-            var results = this.testDataManager.getWordleResultsForUserId(1);
-            WordleResultModel outModel = results.get(IChannelDataManager.WordleDate());
+        for (int i = 0; i < tests.size(); ++i) {
+            String aRes = tests.get(i);
+            String bRes = tests.get(tests.size() - 1 - i);
 
-            assertEquals(outModel.getDbRepresentation(), test.getKey());
-            assertEquals(outModel.getRows(), test.getValue());
-            assertEquals(outModel.isHard(), false);
+            WordleResultModel aModel = WordleResultModel.from(aRes, i % 2 == 0);
+            WordleResultModel bModel = WordleResultModel.from(bRes, i % 2 == 1);
+
+            LocalDate d = LocalDate.now().plusDays(i);
+            this.testDataManager.addWordleResult(1, d, aModel, i * 2);
+            this.testDataManager.addWordleResult(2, d, bModel, i * 2 + 1);
+        }
+
+        for (int i = 0; i < 2; ++i) {
+            Map<LocalDate, WordleResultModel> models = this.testDataManager.getWordleResultsForUserId(Long.valueOf(i + 1));
+
+            for(int j = 0; j < tests.size(); ++j) {
+                LocalDate d = LocalDate.now().plusDays(j);
+                WordleResultModel model = models.get(d);
+                int testIdx = i == 0 ? j : tests.size() - 1 - j;
+                assertEquals(tests.get(testIdx), model.getDbRepresentation());
+            }
+        }
+    }
+
+    @Test
+    public void testWordleResultsForDate() {
+        this.testDataManager.setUserName(1, "Alice");
+        this.testDataManager.setUserName(2, "Bob");
+        List<String> tests = List.of("11111 22222 33333", "11311 22311 33322 33333");
+
+        for (int i = 0; i < tests.size(); ++i) {
+            String aRes = tests.get(i);
+            String bRes = tests.get(tests.size() - 1 - i);
+
+            WordleResultModel aModel = WordleResultModel.from(aRes, i % 2 == 0);
+            WordleResultModel bModel = WordleResultModel.from(bRes, i % 2 == 1);
+
+            LocalDate d = LocalDate.now().plusDays(i);
+            this.testDataManager.addWordleResult(1, d, aModel, i * 2);
+            this.testDataManager.addWordleResult(2, d, bModel, i * 2 + 1);
+        }
+
+        for (int i = 0; i < tests.size(); ++i) {
+            LocalDate d = LocalDate.now().plusDays(i);
+            Map<Long, WordleResultModel> models = this.testDataManager.getWordleResultsForDate(d);
+
+            WordleResultModel aModel = models.get(Long.valueOf(1));
+            WordleResultModel bModel = models.get(Long.valueOf(2));
+
+            assertEquals(tests.get(i), aModel.getDbRepresentation());
+            assertEquals(tests.get(tests.size() - 1 - i), bModel.getDbRepresentation());
+            assertEquals(i % 2 == 0, aModel.isHard());
+            assertEquals(i % 2 == 1, bModel.isHard());
         }
     }
 }

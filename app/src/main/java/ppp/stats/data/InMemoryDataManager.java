@@ -80,4 +80,18 @@ public class InMemoryDataManager implements IChannelDataManager {
     public Map<LocalDate, WordleResultModel> getWordleResultsForUserId(long userId) {
         return this.wordleResults.get(Long.valueOf(userId));
     }
+
+    @Override
+    public Map<Long, WordleResultModel> getWordleResultsForDate(LocalDate date) {
+        Map<Long, WordleResultModel> retVal = new Hashtable<>();
+
+        for(var entry: this.wordleResults.entrySet()) {
+            WordleResultModel model = entry.getValue().get(date);
+            if(model != null) {
+                retVal.put(entry.getKey(), model);
+            }
+        }
+
+        return retVal;
+    }
 }
