@@ -19,6 +19,7 @@ public interface IChannelDataManager {
     Map<Long, MiniTimeMessageModel> getTimesForDate(LocalDate date);
     void addWordleResult(long userId, LocalDate date, WordleResultModel model, long messageId);
     Map<LocalDate, WordleResultModel> getWordleResultsForUserId(long userId);
+    Map<Long, WordleResultModel> getWordleResultsForDate(LocalDate date);
 
     static LocalDate MiniDate() {
         ZoneId nyt = ZoneId.of("America/New_York");
@@ -44,5 +45,9 @@ public interface IChannelDataManager {
 
     default void addUserTime(long userId, int seconds, long messageId) {
         this.addUserTime(userId, IChannelDataManager.MiniDate(), seconds, messageId);
+    }
+
+    default void addWordleResult(long userId, WordleResultModel model, long messageId) {
+        this.addWordleResult(userId, IChannelDataManager.WordleDate(), model, messageId);
     }
 }

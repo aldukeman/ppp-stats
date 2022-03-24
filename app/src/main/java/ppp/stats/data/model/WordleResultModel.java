@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.checkerframework.checker.units.qual.K;
-
 public class WordleResultModel {
     public enum CellType {
         BAD(1), WRONG_SPOT(2), GOOD(3);
