@@ -17,7 +17,8 @@ public class WordleResultParserTest {
         Set<String> stringPositives = Set.of(
                 "Wordle 274 4/6*\n\n🟨⬜⬜⬜🟨\n🟨⬜⬜🟩🟨\n⬜🟩🟩🟩⬜\n🟩🟩🟩🟩🟩",
                 "Wordle 274 3/6*\n\n⬛⬛⬛🟩🟨\n⬛⬛🟩🟩🟨\n🟩🟩🟩🟩🟩",
-                "Wordle 274 3/6\n\n⬛⬛⬛🟩🟨\n⬛⬛🟩🟩🟨\n🟩🟩🟩🟩🟩");
+                "Wordle 274 3/6\n\n⬛⬛⬛🟩🟨\n⬛⬛🟩🟩🟨\n🟩🟩🟩🟩🟩",
+                "Wordle 282 X/6*\n\n⬜🟩⬜🟩⬜\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩");
 
         MessageMock mock = new MessageMock();
         for (var e : stringPositives) {            
@@ -28,7 +29,8 @@ public class WordleResultParserTest {
         Set<String> stringNegatives = Set.of(
                 "4 mini",
                 "0:68 mini",
-                "my mini time was 4:20");
+                "my mini time was 4:20",
+                "Wordle 282 5/6*\n\n⬜🟩⬜🟩⬜\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩\n⬜🟩🟩🟩🟩"); // invalid guess count
         for (String s : stringNegatives) {
             mock.content = s;
             assertNull(parser.parse(mock));
