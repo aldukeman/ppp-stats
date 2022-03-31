@@ -26,7 +26,7 @@ public class WordleResultParser implements IParser {
         this.logger = logger;
     }
 
-    private static final Pattern HEADER_PATTERN = Pattern.compile("Wordle (\\d+) (\\d)/6(\\*?)");
+    private static final Pattern HEADER_PATTERN = Pattern.compile("Wordle (\\d+) (\\d|X)/6(\\*?)");
 
     private Pair<Integer, WordleResultModel> getModel(String msg) {
         List<String> lines = msg.lines().toList();
@@ -41,7 +41,12 @@ public class WordleResultParser implements IParser {
         boolean isHard;
         if (matcher.find()) {
             wordleNum = Integer.parseInt(matcher.group(1));
-            guesses = Integer.parseInt(matcher.group(2));
+            String guessesString = matcher.group(2);
+            if (guessesString.equals("X")) {
+                guesses = 6;
+            } else {
+                guesses = Integer.parseInt(matcher.group(2));
+            }
             if (matcher.groupCount() == 3) {
                 isHard = !matcher.group(3).isEmpty();
             } else {
@@ -52,6 +57,9 @@ public class WordleResultParser implements IParser {
         }
 
         if (!lines.get(1).isEmpty()) {
+            return null;
+        }
+        if(lines.size() != guesses + 2) {
             return null;
         }
 
