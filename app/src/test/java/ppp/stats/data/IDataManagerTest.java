@@ -150,4 +150,34 @@ public abstract class IDataManagerTest extends TestCase {
             assertEquals(i % 2 == 1, bModel.isHard());
         }
     }
+
+    @Test
+    public void testMiniTimesFromDateRange() {
+        this.testDataManager.setUserName(1, "Alice");
+        this.testDataManager.setUserName(2, "Bob");
+
+        LocalDate today = IChannelDataManager.MiniDate();
+        this.testDataManager.addUserTime(1, 7, 1);
+        this.testDataManager.addUserTime(2, 8, 2);
+        LocalDate tomorrow = today.plusDays(1);
+        this.testDataManager.addUserTime(1, tomorrow, 9, 3);
+        this.testDataManager.addUserTime(2, tomorrow, 10, 4);
+
+        var times = this.testDataManager.getTimesForDateInterval(today, tomorrow);
+        assertEquals(2, times.size());
+        assert(times.containsKey(Long.valueOf(1)));
+        assert(times.containsKey(Long.valueOf(2)));
+
+        var times1 = times.get(Long.valueOf(1));
+        assertEquals(7, times1.get(today).getTime());
+        assertEquals(1, times1.get(today).getMessageId().longValue());
+        assertEquals(9, times1.get(tomorrow).getTime());
+        assertEquals(3, times1.get(tomorrow).getMessageId().longValue());
+
+        var times2 = times.get(Long.valueOf(2));
+        assertEquals(8, times2.get(today).getTime());
+        assertEquals(2, times2.get(today).getMessageId().longValue());
+        assertEquals(10, times2.get(tomorrow).getTime());
+        assertEquals(4, times2.get(tomorrow).getMessageId().longValue());
+    }
 }
