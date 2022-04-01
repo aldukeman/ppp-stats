@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Hashtable;
 import java.util.Map;
 
 import ppp.stats.data.model.MiniTimeMessageModel;
@@ -49,5 +50,25 @@ public interface IChannelDataManager {
 
     default void addWordleResult(long userId, WordleResultModel model, long messageId) {
         this.addWordleResult(userId, IChannelDataManager.WordleDate(), model, messageId);
+    }
+
+    default Map<Long, Map<LocalDate, MiniTimeMessageModel>> getTimesForDateInterval(LocalDate start, LocalDate end) {
+        if(end.isBefore(start)) {
+            return new Hashtable<>();
+        }
+
+        Map<Long, Map<LocalDate, MiniTimeMessageModel>> times = new Hashtable<>();
+        start.datesUntil(end.plusDays(1)).forEach((date) -> {
+            this.getTimesForDate(date).forEach((key, value) -> {
+                var userTimes = times.get(key);
+                if(userTimes == null) {
+                    userTimes = new Hashtable<>();
+                    times.put(key, userTimes);
+                }
+                userTimes.put(date, value);
+            });
+        });
+
+        return times;
     }
 }

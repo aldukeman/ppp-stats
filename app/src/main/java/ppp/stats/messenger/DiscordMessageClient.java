@@ -12,6 +12,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.message.BasicMessage;
+import ppp.stats.messenger.message.MiniResultsForDateIntervalMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.messenger.message.UserMiniStatsMessage;
@@ -172,8 +173,12 @@ public class DiscordMessageClient implements IMessageClient {
             return;
         }
 
-        List<Pair<String, Integer>> rowData = msg.rows;
-        String winnersStr = this.makeWinnersString(rowData);
+        var rowData = msg.rows;
+        var rowDataFloat = msg.rows
+            .stream()
+            .map((entry) -> Pair.of(entry.first, Float.valueOf(entry.second.intValue())))
+            .toList();
+        String winnersStr = this.makeWinnersString(rowDataFloat);
 
         int nameColLength = rowData.stream()
                 .map(e -> e.first.length())
@@ -201,13 +206,54 @@ public class DiscordMessageClient implements IMessageClient {
         msgChannel.createMessage(resp).block();
     }
 
-    public String makeWinnersString(List<Pair<String, Integer>> rows) {
-        final int max = rows.get(0).second.intValue();
+    public void sendMiniResultsForDateInterval(ITextChannel channel, MiniResultsForDateIntervalMessage msg) {
+        
+        MessageChannel msgChannel = this.messageChannel(channel);
+        if (msgChannel == null) {
+            this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
+            return;
+        }
+        if (msg.rows.size() == 0) {
+            this.logger.error("No data rows to send");
+            return;
+        }
+
+        List<Pair<String, Float>> rowData = msg.rows;
+        String winnersStr = this.makeWinnersString(rowData);
+
+        int nameColLength = rowData.stream()
+                .map(e -> e.first.length())
+                .max((a, b) -> a - b)
+                .get()
+                .intValue();
+        nameColLength += 5;
+
+        String headers = String.format("%-" + nameColLength + "s | Time", "Name");
+        String resp = "**Mini crossword results for " + msg.start + " to " + msg.end + "**\n" +
+                "Congratulations " + winnersStr + " for getting the top average this week!\n" +
+                "```\n" +
+                headers + "\n";
+        String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
+        resp += splitter + "\n";
+
+        List<String> rows = new ArrayList<>();
+        for (var entry : rowData) {
+            rows.add(String.format("%-" + nameColLength + "s | " + this.timeString(entry.second), entry.first));
+        }
+
+        resp += String.join("\n", rows);
+        resp += "```";
+
+        msgChannel.createMessage(resp).block();
+    }
+
+    public String makeWinnersString(List<Pair<String, Float>> rows) {
+        final var max = rows.get(0).second.floatValue();
         List<String> winners = new ArrayList<>();
         winners.add(rows.get(0).first);
         for (int i = 1; i < rows.size(); ++i) {
-            Pair<String, Integer> next = rows.get(i);
-            if (max == next.second.intValue()) {
+            var next = rows.get(i);
+            if (max == next.second.floatValue()) {
                 winners.add(next.first);
             } else {
                 break;

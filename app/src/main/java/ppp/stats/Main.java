@@ -1,10 +1,9 @@
 package ppp.stats;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ppp.stats.bot.DiscordPPPBot;
 import ppp.stats.data.IChannelDataManager;
@@ -15,11 +14,11 @@ import ppp.stats.parser.CommandParser;
 import ppp.stats.parser.IParser;
 import ppp.stats.parser.MiniCrosswordTimeParser;
 import ppp.stats.parser.WordleResultParser;
-import ppp.stats.parser.command.ICommand;
 import ppp.stats.parser.command.StatsCommand;
 import ppp.stats.parser.command.TimesCommand;
 import ppp.stats.task.ITask;
 import ppp.stats.task.MiniResultsForDateTask;
+import ppp.stats.task.MiniResultsForWeekTask;
 
 public class Main {
     public static void main(String[] args) {
@@ -57,9 +56,9 @@ public class Main {
             return;
         }
 
-        final HashMap<String, ICommand> commands = new HashMap<>();
-        commands.put("times", new TimesCommand());
-        commands.put("stats", new StatsCommand());
+        final var commands = Map.of(
+            "times", new TimesCommand(),
+            "stats", new StatsCommand());
         final CommandParser commandParser = new CommandParser(commands);
         
         final List<IParser> parsers = List.of(
@@ -67,8 +66,9 @@ public class Main {
                 new WordleResultParser(logger),
                 commandParser);
 
-        final List<ITask> tasks = new ArrayList<>();
-        tasks.add(new MiniResultsForDateTask(logger));
+        final List<ITask> tasks = List.of(
+            new MiniResultsForDateTask(logger),
+            new MiniResultsForWeekTask(logger));
 
         final DiscordPPPBot bot = new DiscordPPPBot(token, parsers, tasks, channelFilter, dataManager, logger);
 

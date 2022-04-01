@@ -12,13 +12,13 @@ public class DiscordMessageClientTests {
     @Test public void testMakeWinnersString() {
         DiscordMessageClient client = new DiscordMessageClient(null, null);
 
-        List<Pair<String, Integer>> rows = List.of(Pair.of("Rush", 5));
+        List<Pair<String, Float>> rows = List.of(Pair.of("Rush", (float)5.0));
         assertEquals(client.makeWinnersString(rows), "Rush");
 
-        rows = List.of(Pair.of("Rush", 5), Pair.of("Ian", 5));
+        rows = List.of(Pair.of("Rush", (float)5.0), Pair.of("Ian", (float)5.0));
         assertEquals(client.makeWinnersString(rows), "Rush and Ian");
 
-        rows = List.of(Pair.of("Rush", 5), Pair.of("Ian", 5), Pair.of("Anton", 5));
+        rows = List.of(Pair.of("Rush", (float)5.0), Pair.of("Ian", (float)5.0), Pair.of("Anton", (float)5.0));
         assertEquals(client.makeWinnersString(rows), "Rush, Ian, and Anton");
     }
 }
