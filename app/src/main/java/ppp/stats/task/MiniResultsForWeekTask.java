@@ -25,7 +25,7 @@ public class MiniResultsForWeekTask implements ITask {
 
     @Override
     public List<IBotMessage> execute(IChannelDataManager dataManager) {
-        var end = LocalDate.now();
+        var end = IChannelDataManager.MiniDate();
         var start = end.plusDays(-6);
         this.logger.trace("Executing " + this + " for start: " + start + ", end: " + end);
 
@@ -34,7 +34,7 @@ public class MiniResultsForWeekTask implements ITask {
                 .getTimesForDateInterval(start, end)
                 .entrySet()
                 .stream()
-                .filter((entry) -> entry.getValue().size() != 7)
+                .filter((entry) -> entry.getValue().size() == 7)
                 .map((entry) -> {
                     int sum = entry
                             .getValue()
@@ -57,10 +57,10 @@ public class MiniResultsForWeekTask implements ITask {
 
     @Override
     public LocalDateTime nextExecutionDateTime() {
-        LocalDate nextRunDay = LocalDate
-            .now()
-            .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         ZoneId nyt = ZoneId.of("America/New_York");
+        LocalDate nextRunDay = LocalDate
+            .now(nyt)
+            .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         LocalTime resetTime = LocalTime.of(20, 25, 1);
         ZonedDateTime nextRun = LocalDateTime.of(nextRunDay, resetTime).atZone(nyt);
         ZonedDateTime now = ZonedDateTime.now(nyt);
