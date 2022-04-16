@@ -60,7 +60,7 @@ public class MiniResultsForWeekTask implements ITask {
         ZoneId nyt = ZoneId.of("America/New_York");
         LocalDate nextRunDay = LocalDate
             .now(nyt)
-            .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+            .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         LocalTime resetTime = LocalTime.of(20, 25, 1);
         ZonedDateTime nextRun = LocalDateTime.of(nextRunDay, resetTime).atZone(nyt);
         ZonedDateTime now = ZonedDateTime.now(nyt);
