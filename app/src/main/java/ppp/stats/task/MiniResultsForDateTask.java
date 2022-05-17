@@ -50,15 +50,23 @@ public class MiniResultsForDateTask implements ITask {
         List<Long> winningMessages = new ArrayList<>();
         int min = sortedTimes.get(0).second.getTime();
         winningMessages.add(sortedTimes.get(0).second.getMessageId());
-        for(int i = 1; i < sortedTimes.size(); ++i) {
-            if(min == sortedTimes.get(i).second.getTime()) {
-                winningMessages.add(sortedTimes.get(i).second.getMessageId());
-            } else {
-                break;
-            }
+        for(int i = 1; i < sortedTimes.size() && min == sortedTimes.get(i).second.getTime(); ++i) {
+            winningMessages.add(sortedTimes.get(i).second.getMessageId());
         }
         for(Long msgId: winningMessages) {
             messages.add(new ReactToMessage(msgId, "🧠"));
+        }
+
+        int max = sortedTimes.get(sortedTimes.size() - 1).second.getTime();
+        if(max > min) {
+            List<Long> losingMessages = new ArrayList<>();
+            losingMessages.add(sortedTimes.get(sortedTimes.size() - 1).second.getMessageId());
+            for(int i = sortedTimes.size() - 2; i > 0 && max == sortedTimes.get(i).second.getTime(); ++i) {
+                losingMessages.add(sortedTimes.get(i).second.getMessageId());
+            }
+            for(Long msgId: losingMessages) {
+                messages.add(new ReactToMessage(msgId, "🥦"));
+            }
         }
         
         return messages;
