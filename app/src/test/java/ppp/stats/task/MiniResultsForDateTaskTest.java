@@ -60,5 +60,35 @@ public class MiniResultsForDateTaskTest {
             .toList();
         assertEquals(1, broccoli.size());
         assertEquals(41, broccoli.get(0).msgId);
+
+        dataManager = new InMemoryDataManager();
+        dataManager.setUserName(1, "Alice");
+        dataManager.addUserTime(1, 20, 22);
+
+        messages = task.execute(dataManager);
+        assert(messages.size() == 2);
+
+        numResultsMessages = messages
+            .stream()
+            .filter(msg -> { return msg instanceof MiniResultsForDateMessage; })
+            .count();
+        assertEquals(1, numResultsMessages);
+
+        brain = messages
+            .stream()
+            .filter(msg -> { return msg instanceof ReactToMessage; })
+            .map(msg -> { return (ReactToMessage)msg; })
+            .filter(msg -> { return msg.reaction == "🧠"; })
+            .toList();
+        assertEquals(1, brain.size());
+        assertEquals(22, brain.get(0).msgId);
+
+        broccoli = messages
+            .stream()
+            .filter(msg -> { return msg instanceof ReactToMessage; })
+            .map(msg -> { return (ReactToMessage)msg; })
+            .filter(msg -> { return msg.reaction == "🥦"; })
+            .toList();
+        assert(broccoli.isEmpty());
     }
 }
