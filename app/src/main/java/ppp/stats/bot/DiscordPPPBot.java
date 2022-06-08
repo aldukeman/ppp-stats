@@ -117,14 +117,17 @@ public class DiscordPPPBot implements IBot {
     private boolean processMessage(Message msg) {
         this.logger.trace("Received message: " + msg.getContent());
 
-        IMessage message = new DiscordMessage(msg, this.channelForId(msg.getChannelId().asLong()));
-        for (IParser parser : this.parsers) {
-            if (parser.supportedChannelTypes().contains(message.getChannel().getType())) {
-                IAction action = parser.parse(message);
-                if (action != null) {
-                    action.process(message, this.dataManager)
-                            .send(this.msgClient, message.getChannel());
-                    return true;
+        DiscordTextChannel channel = this.channelForId(msg.getChannelId().asLong());
+        if (channel != null) {
+            IMessage message = new DiscordMessage(msg, channel);
+            for (IParser parser : this.parsers) {
+                if (parser.supportedChannelTypes().contains(message.getChannel().getType())) {
+                    IAction action = parser.parse(message);
+                    if (action != null) {
+                        action.process(message, this.dataManager)
+                                .send(this.msgClient, message.getChannel());
+                        return true;
+                    }
                 }
             }
         }
@@ -135,7 +138,9 @@ public class DiscordPPPBot implements IBot {
         DiscordTextChannel ret = this.channelMap.get(Long.valueOf(id));
         if (ret == null) {
             ret = DiscordTextChannel.from(this.gateway.getChannelById(Snowflake.of(id)).block());
-            this.channelMap.put(Long.valueOf(id), ret);
+            if (ret != null) {
+                this.channelMap.put(Long.valueOf(id), ret);
+            }
         }
         return ret;
     }
