@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import ppp.stats.bot.DiscordPPPBot;
+import ppp.stats.bot.PPPBot;
 import ppp.stats.data.IChannelDataManager;
 import ppp.stats.data.SQLiteDataManager;
 import ppp.stats.logging.ILogger;
@@ -70,9 +71,9 @@ public class Main {
             new MiniResultsForDateTask(logger),
             new MiniResultsForWeekTask(logger));
 
-        final DiscordPPPBot bot = new DiscordPPPBot(token, parsers, tasks, channelFilter, dataManager, logger);
-
+        PPPBot bot = new DiscordPPPBot(token, parsers, tasks, channelFilter, dataManager, logger);
         bot.login();
-        bot.startListening();
+        bot.scheduleTasks();
+        bot.startListening(msg -> { bot.processMessage(msg); });
     }
 }
