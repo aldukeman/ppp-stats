@@ -17,6 +17,8 @@ public class MiniCrosswordTimeParserTest {
 
         Hashtable<String, Integer> stringPositives = new Hashtable<>();
         stringPositives.put("0:34 mini", 34);
+        stringPositives.put("0:37 MINI", 37);
+        stringPositives.put("4:05 mInI", 245);
         stringPositives.put("2:30 mini", 150);
         stringPositives.put("12:07 mini", 727);
 
