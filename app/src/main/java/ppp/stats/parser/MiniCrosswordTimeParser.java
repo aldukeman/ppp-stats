@@ -10,7 +10,7 @@ import ppp.stats.models.IMessage;
 import ppp.stats.models.ITextChannel.Type;
 
 public class MiniCrosswordTimeParser implements IParser {
-    private static Pattern miniTimeReport = Pattern.compile("[0-9]?[0-9]:[0-5][0-9] mini");
+    private static Pattern miniTimeReport = Pattern.compile("[0-9]?[0-9]:[0-5][0-9] (?i)mini");
     private static Pattern miniTime = Pattern.compile("[0-9]?[0-9]:[0-5][0-9]");
 
     private Integer getTime(String msg) {
