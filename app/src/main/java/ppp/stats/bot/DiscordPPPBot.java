@@ -76,6 +76,8 @@ public class DiscordPPPBot implements IBot {
     }
 
     private void scheduleNextExecution(ITask task) {
+        this.logger.trace("Scheduling next execution of " + task);
+
         LocalDateTime next = task.nextExecutionDateTime();
         Duration delay = Duration.between(LocalDateTime.now(), next);
         long delayInNanos = delay.toNanos();

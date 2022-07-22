@@ -46,6 +46,7 @@ public class MiniResultsForDateTask implements ITask {
             .map(e -> Pair.of(names.get(e.first).getName(), Integer.valueOf(e.second.getTime())))
             .toList();
         messages.add(new MiniResultsForDateMessage(date, messageRows));
+        this.logger.trace("Creeated results message to send");
 
         List<Long> winningMessages = new ArrayList<>();
         int min = sortedTimes.get(0).second.getTime();
@@ -53,6 +54,7 @@ public class MiniResultsForDateTask implements ITask {
         for(int i = 1; i < sortedTimes.size() && min == sortedTimes.get(i).second.getTime(); ++i) {
             winningMessages.add(sortedTimes.get(i).second.getMessageId());
         }
+        this.logger.trace("Found " + winningMessages.size() + " winning time(s) of " + min + " seconds");
         for(Long msgId: winningMessages) {
             messages.add(new ReactToMessage(msgId, "🧠"));
         }
@@ -64,11 +66,13 @@ public class MiniResultsForDateTask implements ITask {
             for(int i = sortedTimes.size() - 2; i > 0 && max == sortedTimes.get(i).second.getTime(); ++i) {
                 losingMessages.add(sortedTimes.get(i).second.getMessageId());
             }
+            this.logger.trace("Found " + losingMessages.size() + " losing time(s) of " + max + " seconds");
             for(Long msgId: losingMessages) {
                 messages.add(new ReactToMessage(msgId, "🥦"));
             }
         }
-        
+
+        this.logger.trace("Returning " + messages.size() + " messages to send to chat");
         return messages;
     }
 

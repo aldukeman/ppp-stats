@@ -163,12 +163,16 @@ public class DiscordMessageClient implements IMessageClient {
 
     @Override
     public void sendMiniResultsForDate(ITextChannel channel, MiniResultsForDateMessage msg) {
+        this.logger.trace("Sending mini results daily message to Discord");
+
         MessageChannel msgChannel = this.messageChannel(channel);
         if (msgChannel == null) {
+            this.logger.error("Invalid channel for mini results daily message");
             this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
             return;
         }
         if (msg.rows.size() == 0) {
+            this.logger.info("No data rows to send");
             this.logger.error("No data rows to send");
             return;
         }
@@ -202,6 +206,8 @@ public class DiscordMessageClient implements IMessageClient {
 
         resp += String.join("\n", rows);
         resp += "```";
+
+        this.logger.trace("Push mini results daily message to Discord");
 
         msgChannel.createMessage(resp).block();
     }
