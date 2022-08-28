@@ -33,6 +33,7 @@ public class MiniEloTask implements ITask {
     public List<IBotMessage> execute(IChannelDataManager dataManager) {
         this.logger.info("Starting SendMiniEloAction");
 
+        // Get all times for all users
         final var users = dataManager.getUserModels();
         final List<Pair<UserModel, Map<LocalDate, Integer>>> userScorePairsList = users
             .entrySet()
@@ -48,6 +49,7 @@ public class MiniEloTask implements ITask {
                             entry -> entry.getValue().getTime()))))
             .collect(Collectors.toList());
         
+        // Get users who have submitted a time in the last week
         final LocalDate minDate = LocalDate.now().plusDays(-7);
         final var includedUserIds = userScorePairsList
             .stream()
@@ -56,6 +58,7 @@ public class MiniEloTask implements ITask {
             .collect(Collectors.toList());
         this.logger.info("Found " + includedUserIds.size() + " users with scores since min date");
 
+        // Flip the map so it works for the EloCalculator
         final Map<LocalDate, Map<UserModel, Integer>> dateScoresMap = userScorePairsList.stream()
             .reduce(
                 new HashMap<LocalDate, Map<UserModel, Integer>>(),
@@ -79,6 +82,7 @@ public class MiniEloTask implements ITask {
             );
         this.logger.info("Found " + dateScoresMap.size() + " dates");
         
+        // Calculate Elo and remove users who haven't submitted a time in the last week
         final var eloScores = new EloCalculator()
             .calculateElo(dateScoresMap)
             .entrySet()

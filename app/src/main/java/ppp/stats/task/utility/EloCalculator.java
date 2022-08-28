@@ -12,6 +12,10 @@ import java.util.stream.Stream;
 
 import ppp.stats.data.model.UserModel;
 
+// Base on https://towardsdatascience.com/developing-a-generalized-elo-rating-system-for-multiplayer-games-b9b495e87802
+// The basic idea is each round (daily mini results) has an expectation for results based on each players Elo. The scores
+// for each round are based on the actual daily rankings of the mini times. Magnitude of victory is not considered. The 
+// difference between a player's score and their expectation determines the change in their Elo for the day.
 public class EloCalculator {
     private final double INIT_SCORE;
     private final int D;
@@ -109,4 +113,3 @@ public class EloCalculator {
         return ((double)numPlayers - place) / sum;
     }
 }
-
