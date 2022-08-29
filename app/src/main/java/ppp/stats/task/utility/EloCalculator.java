@@ -12,23 +12,23 @@ import java.util.stream.Stream;
 
 import ppp.stats.data.model.UserModel;
 
-// Base on https://towardsdatascience.com/developing-a-generalized-elo-rating-system-for-multiplayer-games-b9b495e87802
+// Based on https://towardsdatascience.com/developing-a-generalized-elo-rating-system-for-multiplayer-games-b9b495e87802
 // The basic idea is each round (daily mini results) has an expectation for results based on each players Elo. The scores
 // for each round are based on the actual daily rankings of the mini times. Magnitude of victory is not considered. The 
 // difference between a player's score and their expectation determines the change in their Elo for the day.
 public class EloCalculator {
-    private final double INIT_SCORE;
-    private final int D;
-    private final int K;
+    private final double initScore;
+    private final int d;
+    private final int k;
 
     public EloCalculator() {
         this(1000, 400, 32);
     }
 
     public EloCalculator(int initScore, int d, int k) {
-        this.INIT_SCORE = initScore;
-        this.D = d;
-        this.K = k;
+        this.initScore = initScore;
+        this.d = d;
+        this.k = k;
     }
 
     public Map<UserModel, Double> calculateElo(final Map<LocalDate, Map<UserModel, Integer>> data) {
@@ -42,7 +42,7 @@ public class EloCalculator {
                 List<UserModel> users = entry.keySet().stream().toList();
                 int userCount = users.size();
                 if(userCount == 0) { return; }
-                users.forEach(user -> { eloMap.computeIfAbsent(user, u -> this.INIT_SCORE); });
+                users.forEach(user -> { eloMap.computeIfAbsent(user, u -> this.initScore); });
 
                 List<Double> scores = this.scoresForNumPlayers(entry.size());
                 Map<UserModel, Double> preElos = eloMap.entrySet().stream()
@@ -66,7 +66,7 @@ public class EloCalculator {
 
                         tiedUsers.forEach(user -> {
                             double elo = eloMap.get(user);
-                            double diff = this.K * (userCount - 1) * (avgScore - expectations.get(user));
+                            double diff = this.k * (userCount - 1) * (avgScore - expectations.get(user));
                             eloMap.put(user, elo + diff);
                         });
                     });
@@ -89,7 +89,7 @@ public class EloCalculator {
             .map(entry -> {
                 if(entry.getKey().getId() == user.getId()) { return 0.0; }
                 double opponentElo = entry.getValue().doubleValue();
-                return 1.0 / (1 + Math.pow(10, (opponentElo - playerElo) / this.D));
+                return 1.0 / (1 + Math.pow(10, (opponentElo - playerElo) / this.d));
             })
             .mapToDouble(Double::doubleValue)
             .sum();
