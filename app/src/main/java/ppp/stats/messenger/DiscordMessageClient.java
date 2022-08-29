@@ -311,7 +311,7 @@ public class DiscordMessageClient implements IMessageClient {
                 .intValue();
         nameColLength += 5;
 
-        String headers = String.format("%-" + nameColLength + "s | Time", "Score");
+        String headers = String.format("%-" + nameColLength + "s | Score", "Name");
         String resp = "```\n" + headers + "\n";
         String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
         resp += splitter + "\n";
