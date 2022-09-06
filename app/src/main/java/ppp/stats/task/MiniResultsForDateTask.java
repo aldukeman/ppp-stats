@@ -62,8 +62,7 @@ public class MiniResultsForDateTask implements ITask {
         int max = sortedTimes.get(sortedTimes.size() - 1).second.getTime();
         if(max > min) {
             List<Long> losingMessages = new ArrayList<>();
-            losingMessages.add(sortedTimes.get(sortedTimes.size() - 1).second.getMessageId());
-            for(int i = sortedTimes.size() - 2; i > 0 && max == sortedTimes.get(i).second.getTime(); ++i) {
+            for(int i = sortedTimes.size() - 1; i > 0 && max == sortedTimes.get(i).second.getTime(); --i) {
                 losingMessages.add(sortedTimes.get(i).second.getMessageId());
             }
             this.logger.trace("Found " + losingMessages.size() + " losing time(s) of " + max + " seconds");
