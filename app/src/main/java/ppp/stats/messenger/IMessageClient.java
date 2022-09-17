@@ -2,6 +2,7 @@ package ppp.stats.messenger;
 
 import ppp.stats.messenger.message.ReactToMessage;
 import ppp.stats.messenger.message.BasicMessage;
+import ppp.stats.messenger.message.MiniEloMessage;
 import ppp.stats.messenger.message.MiniResultsForDateIntervalMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.messenger.message.UserMiniStatsMessage;
@@ -15,6 +16,7 @@ public interface IMessageClient {
     public void sendMiniResultsForDate(ITextChannel channel, MiniResultsForDateMessage msg);
     public void sendMiniResultsForDateInterval(ITextChannel channel, MiniResultsForDateIntervalMessage msg);
     public void sendMessageReaction(ITextChannel channel, ReactToMessage msg);
+    public void sendMiniEloResults(ITextChannel channel, MiniEloMessage msg);
 
     default String timeString(Integer time) {
         int seconds = time.intValue();

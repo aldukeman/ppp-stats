@@ -17,6 +17,7 @@ import ppp.stats.parser.WordleResultParser;
 import ppp.stats.parser.command.StatsCommand;
 import ppp.stats.parser.command.TimesCommand;
 import ppp.stats.task.ITask;
+import ppp.stats.task.MiniEloTask;
 import ppp.stats.task.MiniResultsForDateTask;
 import ppp.stats.task.MiniResultsForWeekTask;
 
@@ -68,7 +69,8 @@ public class Main {
 
         final List<ITask> tasks = List.of(
             new MiniResultsForDateTask(logger),
-            new MiniResultsForWeekTask(logger));
+            new MiniResultsForWeekTask(logger),
+            new MiniEloTask(logger));
 
         final DiscordPPPBot bot = new DiscordPPPBot(token, parsers, tasks, channelFilter, dataManager, logger);
 

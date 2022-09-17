@@ -12,6 +12,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import ppp.stats.logging.ILogger;
 import ppp.stats.messenger.message.BasicMessage;
+import ppp.stats.messenger.message.MiniEloMessage;
 import ppp.stats.messenger.message.MiniResultsForDateIntervalMessage;
 import ppp.stats.messenger.message.MiniResultsForDateMessage;
 import ppp.stats.messenger.message.ReactToMessage;
@@ -213,7 +214,6 @@ public class DiscordMessageClient implements IMessageClient {
     }
 
     public void sendMiniResultsForDateInterval(ITextChannel channel, MiniResultsForDateIntervalMessage msg) {
-        
         MessageChannel msgChannel = this.messageChannel(channel);
         if (msgChannel == null) {
             this.sendBasicMessage(channel, new BasicMessage("Error: invalid channel"));
@@ -289,5 +289,41 @@ public class DiscordMessageClient implements IMessageClient {
         }
 
         message.addReaction(ReactionEmoji.unicode(msg.reaction)).block();
+    }
+
+    @Override
+    public void sendMiniEloResults(ITextChannel channel, MiniEloMessage msg) {
+        MessageChannel msgChannel = this.messageChannel(channel);
+        if (msgChannel == null) {
+            this.logger.error("Invalid channel for mini elo results");
+            return;
+        }
+        if (msg.rows.size() == 0) {
+            this.logger.error("No data rows to send");
+            return;
+        }
+
+        var rowData = msg.rows;
+        int nameColLength = rowData.stream()
+                .map(e -> e.first.length())
+                .max((a, b) -> a - b)
+                .get()
+                .intValue();
+        nameColLength += 5;
+
+        String headers = String.format("%-" + nameColLength + "s | Score", "Name");
+        String resp = "```\n" + headers + "\n";
+        String splitter = new String(new char[nameColLength + 1]).replace('\u0000', '-') + "+--------";
+        resp += splitter + "\n";
+
+        List<String> rows = new ArrayList<>();
+        for (var entry : rowData) {
+            rows.add(String.format("%-" + nameColLength + "s | " + entry.second, entry.first));
+        }
+
+        resp += String.join("\n", rows);
+        resp += "```";
+
+        msgChannel.createMessage(resp).block();
     }
 }
