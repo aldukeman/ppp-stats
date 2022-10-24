@@ -1,5 +1,6 @@
 package ppp.stats;
 
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +38,7 @@ public class Main {
         }
 
         final String CHANNEL_FILTER_ENV_VAR = "CHANNEL_FILTER";
-        List<String> channelFilter = null;
+        List<BigInteger> channelFilter = null;
         String chanFilter = null;
         if (args.length >= 2) {
             chanFilter = args[1];
@@ -45,7 +46,10 @@ public class Main {
             chanFilter = System.getenv(CHANNEL_FILTER_ENV_VAR);
         }
         if (chanFilter != null) {
-            channelFilter = Arrays.asList(chanFilter.split(","));
+            channelFilter = Arrays.asList(chanFilter.split(","))
+                .stream()
+                .map(s -> new BigInteger(s))
+                .toList();
             logger.debug("Filtering on " + channelFilter);
         }
 

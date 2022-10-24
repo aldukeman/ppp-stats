@@ -1,5 +1,6 @@
 package ppp.stats.bot;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Hashtable;
@@ -37,19 +38,21 @@ public class DiscordPPPBot implements IBot {
     final private ILogger logger;
     final private List<IParser> parsers;
     final private List<ITask> tasks;
-    final private List<String> channelFilter;
+    final private List<Snowflake> channelFilter;
     private IMessageClient msgClient;
     final private IChannelDataManager dataManager;
     private ITextChannel channel;
     final private ScheduledExecutorService scheduledService = Executors.newScheduledThreadPool(1);
     final private Map<Long, DiscordTextChannel> channelMap = new Hashtable<>();
 
-    public DiscordPPPBot(String token, List<IParser> parsers, List<ITask> tasks, List<String> channelFilter,
+    public DiscordPPPBot(String token, List<IParser> parsers, List<ITask> tasks, List<BigInteger> channelFilter,
             IChannelDataManager dataManager, ILogger logger) {
         this.client = DiscordClient.create(token);
         this.parsers = parsers;
         this.tasks = tasks;
-        this.channelFilter = channelFilter;
+        this.channelFilter = channelFilter.stream()
+                .map(i -> Snowflake.of(i))
+                .toList();
         this.dataManager = dataManager;
         this.logger = logger;
     }
@@ -63,7 +66,7 @@ public class DiscordPPPBot implements IBot {
             List<ChannelData> channels = this.client.getGuildById(Snowflake.of(guild.id())).getChannels().collectList()
                     .block();
             for (ChannelData channel : channels) {
-                if (channel.name() != null && this.channelFilter.contains(channel.name().get())) {
+                if (channel.id() != null && this.channelFilter.contains(Snowflake.of(channel.id()))) {
                     this.channel = new DiscordGuildChannel(
                             (TextChannel) this.gateway.getChannelById(Snowflake.of(channel.id())).block());
                 }
@@ -102,11 +105,8 @@ public class DiscordPPPBot implements IBot {
                     if (this.channelFilter == null) {
                         return true;
                     }
-                    if (message.getChannel().block() instanceof TextChannel) {
-                        String chanName = ((TextChannel) message.getChannel().block()).getName();
-                        return this.channelFilter.contains(chanName);
-                    }
-                    return true;
+                    var chanId = message.getChannel().block().getId();
+                    return this.channelFilter.contains(chanId);
                 })
                 .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
                 .subscribe(message -> {
