@@ -11,19 +11,23 @@ public class TimesCommand implements ICommand {
     public IAction parse(List<String> command) {
         if (command.size() == 0) {
             return new SendMiniTimesAction(10);
-        } else if (command.size() == 1) {
+        } 
+        else if (command.size() == 1) {
             String option = command.get(0);
             if (option.equals("all")) {
                 return new SendMiniTimesAction();
-            } else {
+            } 
+            else {
                 try {
                     Double d = Double.parseDouble(option);
                     if (d.intValue() > 0) {
                         return new SendMiniTimesAction(d.intValue());
-                    } else {
+                    } 
+                    else {
                         throw new NumberFormatException();
                     }
-                } catch (NumberFormatException e) {
+                } 
+                catch (NumberFormatException e) {
                     return this.usageMessage();
                 }
             }
